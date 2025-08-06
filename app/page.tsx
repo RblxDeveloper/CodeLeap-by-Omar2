@@ -10,8 +10,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { ChallengeDisplay } from '@/components/challenge-display'
 import { ChallengeHistory } from '@/components/challenge-history'
 import { LoadingGhost } from '@/components/loading-ghost'
-import { ApiKeyModal } from '@/components/api-key-modal'
-import { Code2, Target, History, Sparkles, Brain, AlertCircle, Clock, Key, CreditCard, ExternalLink } from 'lucide-react'
+import { Code2, Target, History, Sparkles, Brain, AlertCircle, Clock, CreditCard, ExternalLink } from 'lucide-react'
 
 export interface Challenge {
   id: string
@@ -38,7 +37,6 @@ export default function CodeLeapApp() {
   const [isUsingFallback, setIsUsingFallback] = useState(false)
   const [generationTime, setGenerationTime] = useState<number | null>(null)
   const [apiKey, setApiKey] = useState<string | null>(null)
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [isRateLimited, setIsRateLimited] = useState(false)
 
   useEffect(() => {
@@ -60,25 +58,8 @@ export default function CodeLeapApp() {
     }
   }, [])
 
-  const handleApiKeySet = (newApiKey: string) => {
-    setApiKey(newApiKey)
-    setShowApiKeyModal(false)
-    setIsRateLimited(false) // Reset rate limit status when new key is set
-  }
-
-  const changeApiKey = () => {
-    setShowApiKeyModal(true)
-  }
-
-  const saveToHistory = (challenge: Challenge) => {
-    const updatedHistory = [challenge, ...challengeHistory].slice(0, 50) // Keep last 50 challenges
-    setChallengeHistory(updatedHistory)
-    localStorage.setItem('codeleap-history', JSON.stringify(updatedHistory))
-  }
-
   const generateChallenge = async () => {
     if (!apiKey) {
-      setShowApiKeyModal(true)
       return
     }
 
@@ -170,12 +151,6 @@ export default function CodeLeapApp() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* API Key Modal */}
-      <ApiKeyModal 
-        isOpen={showApiKeyModal} 
-        onApiKeySet={handleApiKeySet}
-      />
-
       {/* Header */}
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -187,17 +162,6 @@ export default function CodeLeapApp() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {apiKey && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={changeApiKey}
-                className="text-xs"
-              >
-                <Key className="h-3 w-3 mr-1" />
-                Change API Key
-              </Button>
-            )}
             <ThemeToggle />
           </div>
         </div>
