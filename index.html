@@ -12,70 +12,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body class="light-theme">
-    <!-- API Key Modal -->
-    <div id="apiKeyModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-icon">
-                    <i data-lucide="key"></i>
-                </div>
-                <h2>Welcome to CodeLeap!</h2>
-                <p>Enter your Groq API key to start generating AI coding challenges</p>
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label for="apiKeyInput">Groq API Key</label>
-                    <input type="password" id="apiKeyInput" placeholder="gsk_..." class="api-key-input">
-                </div>
-                
-                <div id="apiKeyError" class="error-message hidden">
-                    <i data-lucide="alert-triangle"></i>
-                    <span></span>
-                </div>
-
-                <div class="info-box info">
-                    <i data-lucide="info"></i>
-                    <div>
-                        <p><strong>Don't have an API key?</strong></p>
-                        <p>Get a free Groq API key:</p>
-                        <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">
-                            console.groq.com/keys <i data-lucide="external-link"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <div class="info-box warning">
-                    <i data-lucide="credit-card"></i>
-                    <div>
-                        <p><strong>Free Tier Limits</strong></p>
-                        <p>Groq's free tier has rate limits. For higher limits:</p>
-                        <ul>
-                            <li>Upgrade to Groq Pro for higher rate limits</li>
-                            <li>Faster response times</li>
-                            <li>Priority access</li>
-                        </ul>
-                        <a href="https://console.groq.com/settings/billing" target="_blank" rel="noopener noreferrer">
-                            Upgrade here <i data-lucide="external-link"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <div class="info-box success">
-                    <i data-lucide="check-circle"></i>
-                    <div>
-                        <p><strong>Your API key is stored locally</strong></p>
-                        <p>It's saved in your browser and never sent to our servers</p>
-                    </div>
-                </div>
-
-                <button id="saveApiKey" class="btn btn-primary btn-large" disabled>
-                    <i data-lucide="key"></i>
-                    Save API Key
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Header -->
     <header class="header">
         <div class="container">
@@ -88,10 +24,6 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button id="changeApiKey" class="btn btn-outline btn-small hidden">
-                        <i data-lucide="key"></i>
-                        Change API Key
-                    </button>
                     <button id="themeToggle" class="btn btn-outline btn-icon">
                         <i data-lucide="sun" class="sun-icon"></i>
                         <i data-lucide="moon" class="moon-icon hidden"></i>
@@ -123,7 +55,7 @@
                     <div id="welcomeSection" class="card welcome-card">
                         <div class="card-header text-center">
                             <h2><i data-lucide="brain"></i> Welcome to CodeLeap!</h2>
-                            <p>Test your coding skills with AI-generated challenges. Each challenge is unique and designed to help you learn and improve your programming knowledge.</p>
+                            <p>Test your coding skills with AI-generated challenges. Each challenge is unique and designed to help you learn and improve your programming knowledge. Most challenges contain subtle errors - can you spot them?</p>
                         </div>
                         <div class="card-content">
                             <div class="features-grid">
@@ -134,8 +66,8 @@
                                 </div>
                                 <div class="feature-card">
                                     <i data-lucide="sparkles" class="feature-icon yellow"></i>
-                                    <h3>Always Different</h3>
-                                    <p>Never see the same challenge twice</p>
+                                    <h3>Mix of Correct & Incorrect</h3>
+                                    <p>Test your debugging skills</p>
                                 </div>
                                 <div class="feature-card">
                                     <i data-lucide="target" class="feature-icon blue"></i>
@@ -170,7 +102,7 @@
                             <div class="loading-message">
                                 <div class="ai-thinking">
                                     <i data-lucide="brain" class="thinking-icon"></i>
-                                    <span>AI is thinking...</span>
+                                    <span>AI is crafting your challenge...</span>
                                 </div>
                                 <div class="loading-dots">
                                     <div class="dot"></div>
@@ -233,7 +165,7 @@
                     <div id="challengeControls" class="card">
                         <div class="card-header">
                             <h2><i data-lucide="brain"></i> Generate <span id="languageDisplay">JAVASCRIPT</span> Challenge</h2>
-                            <p>Create a unique <span id="languageText">javascript</span> challenge at <span id="difficultyText">easy</span> difficulty</p>
+                            <p>Create a unique <span id="languageText">javascript</span> challenge at <span id="difficultyText">easy</span> difficulty. Most challenges will contain subtle errors to test your debugging skills!</p>
                         </div>
                         <div class="card-content">
                             <div class="controls-grid">
@@ -258,7 +190,7 @@
                                 <i data-lucide="brain"></i>
                                 Generate Challenge
                             </button>
-                            <p id="apiKeyRequired" class="api-key-note hidden">Please set your API key to generate challenges</p>
+                            <p class="api-note">Using default Groq API key - challenges are powered by AI</p>
                         </div>
                     </div>
 

@@ -1,18 +1,11 @@
 // Global state
 let currentChallenge = null;
 let challengeHistory = [];
-let apiKey = null;
+let apiKey = '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'; // Default API key
 let isGenerating = false;
 
 // DOM elements
 const elements = {
-    // Modal
-    apiKeyModal: document.getElementById('apiKeyModal'),
-    apiKeyInput: document.getElementById('apiKeyInput'),
-    apiKeyError: document.getElementById('apiKeyError'),
-    saveApiKey: document.getElementById('saveApiKey'),
-    changeApiKey: document.getElementById('changeApiKey'),
-    
     // Theme
     themeToggle: document.getElementById('themeToggle'),
     
@@ -36,7 +29,6 @@ const elements = {
     languageDisplay: document.getElementById('languageDisplay'),
     languageText: document.getElementById('languageText'),
     difficultyText: document.getElementById('difficultyText'),
-    apiKeyRequired: document.getElementById('apiKeyRequired'),
     
     // Challenge display
     challengeLanguageIcon: document.getElementById('challengeLanguageIcon'),
@@ -107,17 +99,6 @@ function loadSavedData() {
     const savedHistory = localStorage.getItem('codeleap-history');
     if (savedHistory) {
         challengeHistory = JSON.parse(savedHistory);
-    }
-    
-    // Load API key or set default
-    const savedApiKey = localStorage.getItem('codeleap-api-key');
-    if (savedApiKey) {
-        apiKey = savedApiKey;
-    } else {
-        // Set default Groq API key
-        const defaultKey = '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';
-        apiKey = defaultKey;
-        localStorage.setItem('codeleap-api-key', defaultKey);
     }
     
     // Load theme
@@ -202,17 +183,12 @@ function updateControlLabels() {
 
 // Challenge generation
 async function generateChallengeHandler() {
-    if (!apiKey) {
-        console.error('No API key available');
-        return;
-    }
-    
     if (isGenerating) return;
     
     const difficulty = elements.difficultySelect.value;
     const language = elements.languageSelect.value;
     
-    await generateChallenge(difficulty, language);
+    generateChallenge(difficulty, language);
 }
 
 async function generateChallenge(difficulty, language) {
@@ -223,39 +199,16 @@ async function generateChallenge(difficulty, language) {
     showLoadingState();
     
     try {
-        const response = await fetch('/api/generate-challenge', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                difficulty: difficulty,
-                language: language,
-                apiKey: apiKey
-            })
-        });
+        const response = await callGroqAPI(difficulty, language);
         
         const endTime = Date.now();
         const generationTime = endTime - startTime;
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const challenge = await response.json();
-        
-        // Handle different response types
-        if (challenge.isRateLimit) {
-            showRateLimitWarning(generationTime);
-        } else if (challenge.fallbackUsed) {
-            showGenerationError('AI was slow/unavailable, using curated challenge', generationTime, true);
-        }
-        
         // Display the challenge
         currentChallenge = {
-            ...challenge,
-            id: challenge.id || `challenge-${Date.now()}`,
-            timestamp: challenge.timestamp || Date.now()
+            ...response,
+            id: response.id || `challenge-${Date.now()}`,
+            timestamp: response.timestamp || Date.now()
         };
         
         displayChallenge(currentChallenge);
@@ -265,7 +218,12 @@ async function generateChallenge(difficulty, language) {
         const generationTime = endTime - startTime;
         
         console.error('Challenge generation failed:', error);
-        showGenerationError(error.message || 'Generation failed', generationTime, false);
+        
+        if (error.message === 'RATE_LIMIT_EXCEEDED') {
+            showRateLimitWarning(generationTime);
+        } else {
+            showGenerationError(error.message || 'Generation failed', generationTime, false);
+        }
         
         // Show dynamic fallback challenge
         currentChallenge = getDynamicFallbackChallenge(language, difficulty);
@@ -478,12 +436,12 @@ function generateJavaScriptChallenge(difficulty, seed, timestamp) {
         ],
         medium: [
             {
-                code: `const users = [{name: "Alice", age: 25}, {name: "Bob", age: 30}];\nconst names = users.map(user => user.name);\nconsole.log(names);`,
+                code: `const numbers = [1, 2, 3, 4, 5];\nconst evenNumbers = numbers.filter(num => num % 2 === 0);\nconst doubled = evenNumbers.map(num => num * 2);\nconsole.log(doubled);`,
                 correct: true,
-                explanation: 'This correctly uses the map method to extract names from an array of objects.'
+                explanation: 'This correctly chains array methods to filter even numbers and double them.'
             },
             {
-                code: `async function getData() {\n  const response = await fetch("/api/data");\n  const data = response.json();\n  return data;\n}`,
+                code: `async function fetchData() {\n  const response = await fetch("/api/data");\n  const data = response.json();\n  return data;\n}`,
                 correct: false,
                 explanation: 'Missing await before response.json(). Should be: const data = await response.json();'
             }
@@ -1132,13 +1090,6 @@ function updateHistoryList() {
 
 // Update UI based on current state
 function updateUI() {
-    // Show/hide API key button
-    if (apiKey) {
-        elements.generateChallenge.disabled = false;
-    } else {
-        elements.generateChallenge.disabled = true;
-    }
-    
     // Update control labels
     updateControlLabels();
     

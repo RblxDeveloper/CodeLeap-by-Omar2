@@ -12,26 +12,19 @@ A static web application that generates unique coding challenges using AI to hel
 - **Dark/Light Theme**: Toggle between themes for comfortable viewing
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
 
-## Setup Instructions
+## Quick Start
 
-### 1. Get a Groq API Key
+### Option 1: GitHub Pages (Recommended)
 
-1. Visit [console.groq.com/keys](https://console.groq.com/keys)
-2. Sign up for a free account
-3. Generate a new API key (starts with `gsk_`)
-4. Copy the API key for use in the application
-
-### 2. Deploy to GitHub Pages
-
-1. **Fork or Download** this repository
-2. **Upload files** to your GitHub repository:
+1. **Fork this repository** or **download the files**
+2. **Upload to your GitHub repository**:
    - `index.html`
    - `styles.css`
    - `script.js`
    - `README.md`
 
 3. **Enable GitHub Pages**:
-   - Go to your repository settings
+   - Go to your repository Settings
    - Scroll to "Pages" section
    - Select "Deploy from a branch"
    - Choose "main" branch and "/ (root)" folder
@@ -40,27 +33,35 @@ A static web application that generates unique coding challenges using AI to hel
 4. **Access your site**:
    - Your site will be available at: `https://yourusername.github.io/your-repo-name`
 
-### 3. Using the Application
+### Option 2: Local Development
+
+1. **Download the files** to a folder on your computer
+2. **Open `index.html`** in any modern web browser
+3. **Start generating challenges!**
+
+## How It Works
 
 1. **Open the website** in your browser
-2. **Enter your Groq API key** when prompted
-3. **Select difficulty and language** for your challenge
-4. **Click "Generate Challenge"** to create a unique coding challenge
-5. **Analyze the code** and decide if it's correct or incorrect
-6. **View the explanation** and learn from the results
-7. **Track your progress** in the History tab
+2. **Select difficulty and language** for your challenge
+3. **Click "Generate Challenge"** to create a unique coding challenge
+4. **Analyze the code** and decide if it's correct or incorrect
+5. **View the explanation** and learn from the results
+6. **Track your progress** in the History tab
 
-## API Key Information
+## Built-in AI Integration
 
-### Free Tier Limits
-- Groq offers a generous free tier with rate limits
-- If you hit rate limits, the app will use curated fallback challenges
-- For unlimited usage, consider upgrading to Groq Pro
+The application comes with a **default Groq API key** that provides:
+- **Free AI-powered challenges** for all users
+- **No setup required** - works immediately
+- **Fallback challenges** if the API is unavailable
+- **Rate limiting protection** with curated alternatives
 
-### Security
-- Your API key is stored locally in your browser
-- It's never sent to our servers or stored remotely
-- You can change or remove your API key at any time
+### API Key Information
+
+- **Default Key**: The app includes a working Groq API key
+- **Free Tier**: Generous limits for learning and practice
+- **Fallback System**: High-quality curated challenges when needed
+- **No Registration**: Start using immediately
 
 ## File Structure
 
@@ -93,36 +94,39 @@ codeleap/
 The application supports light and dark themes. You can modify the CSS custom properties in `styles.css` to create your own color schemes.
 
 ### Challenge Types
-To add new challenge types or modify existing ones, edit the fallback challenges in the `getFallbackChallenge()` function in `script.js`.
+To add new challenge types or modify existing ones, edit the fallback challenges in the `getDynamicFallbackChallenge()` function in `script.js`.
 
 ### Styling
 All styles are contained in `styles.css` with CSS custom properties for easy theming and customization.
 
 ## Troubleshooting
 
-### API Key Issues
-- Ensure your API key starts with `gsk_`
-- Check that your Groq account has available credits
-- Verify your internet connection
+### Common Issues
+- **Challenges not generating**: The app will automatically use fallback challenges
+- **Display issues**: Clear your browser cache and ensure JavaScript is enabled
+- **Theme not switching**: Try refreshing the page
 
 ### Rate Limiting
-- Free tier has usage limits
-- Wait for limits to reset or upgrade your Groq plan
-- Fallback challenges will be used when rate limited
-
-### Display Issues
-- Clear your browser cache
-- Ensure JavaScript is enabled
-- Check browser console for errors
+- The free tier has usage limits
+- Fallback challenges are automatically used when needed
+- All challenges are educational and high-quality
 
 ## Contributing
 
 This is a static web application that can be easily modified:
 
 1. Fork the repository
-2. Make your changes
+2. Make your changes to the HTML, CSS, or JavaScript files
 3. Test locally by opening `index.html` in a browser
 4. Deploy to GitHub Pages
+
+## Educational Use
+
+Perfect for:
+- **Coding bootcamps** and educational institutions
+- **Self-directed learning** and skill improvement
+- **Interview preparation** and debugging practice
+- **Team training** and code review exercises
 
 ## License
 
@@ -132,10 +136,18 @@ This project is open source and available under the MIT License.
 
 For issues or questions:
 - Check the browser console for error messages
-- Ensure your API key is valid
-- Try refreshing the page
-- Clear browser storage if needed
+- Ensure JavaScript is enabled in your browser
+- Try refreshing the page or clearing browser storage
+- The app includes comprehensive fallback systems
 
 ---
 
-**Enjoy improving your coding skills with CodeLeap!** 🚀
+**Start improving your coding skills with CodeLeap!** 🚀
+
+### Quick Deploy Checklist
+
+- [ ] Upload `index.html`, `styles.css`, `script.js` to your repository
+- [ ] Enable GitHub Pages in repository settings
+- [ ] Access your live site and start coding!
+
+No additional setup, API keys, or configuration required - everything works out of the box!
