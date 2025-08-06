@@ -1,74 +1,77 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+
 interface CodeHighlighterProps {
   code: string
-  language: 'javascript' | 'html' | 'css'
+  language: string
 }
 
 export function CodeHighlighter({ code, language }: CodeHighlighterProps) {
-  // Format code with proper indentation
-  const formatCode = (code: string, language: string) => {
-    if (language === 'html') {
-      return formatHTML(code)
-    } else if (language === 'css') {
-      return formatCSS(code)
-    } else if (language === 'javascript') {
-      return formatJavaScript(code)
-    }
-    return code
-  }
+  const [formattedCode, setFormattedCode] = useState('')
 
-  // Improved HTML formatter
-  const formatHTML = (html: string) => {
-    if (!html || html.trim().length === 0) return html
+  useEffect(() => {
+    const formatCode = (code: string, lang: string) => {
+      if (lang === 'html') {
+        return formatHTML(code)
+      } else if (lang === 'css') {
+        return formatCSS(code)
+      } else if (lang === 'javascript') {
+        return formatJavaScript(code)
+      }
+      return code
+    }
+
+    setFormattedCode(formatCode(code, language))
+  }, [code, language])
+
+const formatHTML = (html: string) => {
+  if (!html || html.trim().length === 0) return html
+  
+  let formatted = ''
+  let indent = 0
+  const indentSize = 2
+  
+  // Don't over-clean the HTML - preserve some structure
+  let cleanHtml = html.trim()
+  
+  // Split by tags while preserving content
+  const parts = cleanHtml.split(/(<[^>]*>)/).filter(part => part.length > 0)
+  
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i]
+    if (!part) continue
     
-    let formatted = ''
-    let indent = 0
-    const indentSize = 2
-    
-    // Clean up the HTML first
-    let cleanHtml = html
-      .replace(/>\s+</g, '><')  // Remove whitespace between tags
-      .replace(/\s+/g, ' ')     // Normalize whitespace
-      .trim()
-    
-    // Split by tags while preserving the tags
-    const parts = cleanHtml.split(/(<[^>]*>)/).filter(part => part.length > 0)
-    
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i].trim()
-      if (!part) continue
+    if (part.startsWith('</')) {
+      // Closing tag - decrease indent first
+      indent = Math.max(0, indent - indentSize)
+      formatted += ' '.repeat(indent) + part + '\n'
+    } else if (part.startsWith('<')) {
+      // Opening tag
+      const tagMatch = part.match(/<(\w+)/)
+      const tagName = tagMatch ? tagMatch[1].toLowerCase() : ''
       
-      if (part.startsWith('</')) {
-        // Closing tag - decrease indent first
-        indent = Math.max(0, indent - indentSize)
-        formatted += ' '.repeat(indent) + part + '\n'
-      } else if (part.startsWith('<')) {
-        // Opening tag
-        const tagMatch = part.match(/<(\w+)/)
-        const tagName = tagMatch ? tagMatch[1].toLowerCase() : ''
-        
-        // Self-closing tags and void elements
-        const voidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']
-        const isSelfClosing = part.endsWith('/>') || voidElements.includes(tagName)
-        
-        formatted += ' '.repeat(indent) + part + '\n'
-        
-        if (!isSelfClosing) {
-          indent += indentSize
-        }
-      } else {
-        // Text content
-        if (part.length > 0) {
-          formatted += ' '.repeat(indent) + part + '\n'
-        }
+      // Self-closing tags and void elements
+      const voidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']
+      const isSelfClosing = part.endsWith('/>') || voidElements.includes(tagName)
+      
+      formatted += ' '.repeat(indent) + part + '\n'
+      
+      if (!isSelfClosing) {
+        indent += indentSize
+      }
+    } else {
+      // Text content - trim but preserve
+      const trimmedPart = part.trim()
+      if (trimmedPart.length > 0) {
+        formatted += ' '.repeat(indent) + trimmedPart + '\n'
       }
     }
-    
-    return formatted.trim()
   }
+  
+  return formatted.trim()
+}
 
-  // Improved CSS formatter
   const formatCSS = (css: string) => {
     if (!css || css.trim().length === 0) return css
     
@@ -76,7 +79,6 @@ export function CodeHighlighter({ code, language }: CodeHighlighterProps) {
     let indent = 0
     const indentSize = 2
     
-    // Clean up CSS
     let cleanCss = css
       .replace(/\s*{\s*/g, ' {\n')
       .replace(/;\s*/g, ';\n')
@@ -104,40 +106,38 @@ export function CodeHighlighter({ code, language }: CodeHighlighterProps) {
     return formatted.trim()
   }
 
-  // Improved JavaScript formatter
-  const formatJavaScript = (js: string) => {
-    if (!js || js.trim().length === 0) return js
-    
-    let formatted = ''
-    let indent = 0
-    const indentSize = 2
-    
-    const lines = js.split('\n')
-    
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed) {
-        formatted += '\n'
-        continue
-      }
-      
-      // Decrease indent for closing braces
-      if (trimmed.startsWith('}')) {
-        indent = Math.max(0, indent - indentSize)
-      }
-      
-      formatted += ' '.repeat(indent) + trimmed + '\n'
-      
-      // Increase indent after opening braces
-      if (trimmed.endsWith('{')) {
-        indent += indentSize
-      }
+const formatJavaScript = (js: string) => {
+  if (!js || js.trim().length === 0) return js
+  
+  let formatted = ''
+  let indent = 0
+  const indentSize = 2
+  
+  const lines = js.split('\n')
+  
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      formatted += '\n'
+      continue
     }
     
-    return formatted.trim()
+    // Decrease indent for closing braces
+    if (trimmed.startsWith('}')) {
+      indent = Math.max(0, indent - indentSize)
+    }
+    
+    formatted += ' '.repeat(indent) + trimmed + '\n'
+    
+    // Increase indent after opening braces
+    if (trimmed.endsWith('{')) {
+      indent += indentSize
+    }
   }
+  
+  return formatted.trim()
+}
 
-  // Properly escape HTML characters for display
   const escapeHtml = (text: string) => {
     return text
       .replace(/&/g, '&amp;')
@@ -147,31 +147,32 @@ export function CodeHighlighter({ code, language }: CodeHighlighterProps) {
       .replace(/'/g, '&#x27;')
   }
 
-  const formattedCode = formatCode(code, language)
-  const lines = formattedCode.split('\n')
+const lines = formattedCode.split('\n')
 
-  return (
-    <div className="relative">
-      <div className="absolute top-3 right-3 z-10">
-        <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded">
-          {language.toUpperCase()}
-        </span>
-      </div>
-      <pre className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-lg overflow-x-auto text-sm font-mono max-w-full">
-        <code className="block min-w-0">
-          {lines.map((line, index) => (
-            <div key={index} className="flex min-w-0">
-              <span className="text-gray-400 dark:text-gray-500 select-none w-8 text-right pr-3 text-xs leading-6 flex-shrink-0">
-                {index + 1}
-              </span>
-              <span 
-                className="flex-1 leading-6 whitespace-pre min-w-0 text-gray-800 dark:text-gray-200"
-                dangerouslySetInnerHTML={{ __html: escapeHtml(line) || '&nbsp;' }}
+return (
+  <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+    <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+      <span className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase">
+        {language}
+      </span>
+    </div>
+    <div className="p-0">
+      <div className="font-mono text-sm">
+        {lines.map((line, index) => (
+          <div key={index} className="flex hover:bg-gray-100 dark:hover:bg-gray-800">
+            <div className="bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-3 py-1 text-right min-w-[3rem] border-r border-gray-200 dark:border-gray-700 select-none">
+              {index + 1}
+            </div>
+            <div className="flex-1 px-4 py-1 overflow-x-auto">
+              <code 
+                className="whitespace-pre text-gray-800 dark:text-gray-200"
+                dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }}
               />
             </div>
-          ))}
-        </code>
-      </pre>
+          </div>
+        ))}
+      </div>
     </div>
-  )
+  </div>
+)
 }

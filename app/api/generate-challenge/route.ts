@@ -11,26 +11,70 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 70% chance of incorrect code for more challenge
+    // 70% chance of incorrect code for more challenge variety
     const shouldBeCorrect = Math.random() > 0.7
 
-    // Add randomization to prompts for variety
+    // Enhanced topic selection with more variety
     const getRandomTopic = (lang: string, diff: string) => {
       const topics = {
         javascript: {
-          easy: ['variables', 'functions', 'arrays', 'objects', 'loops', 'conditionals', 'strings', 'numbers'],
-          medium: ['array methods', 'object destructuring', 'arrow functions', 'promises', 'async/await', 'classes', 'modules'],
-          hard: ['closures', 'prototypes', 'event loop', 'recursion', 'higher-order functions', 'generators', 'proxies']
+          easy: [
+            'variables and data types', 'basic functions', 'arrays and indexing', 'simple objects', 
+            'for loops', 'while loops', 'if statements', 'string methods', 'number operations',
+            'boolean logic', 'template literals', 'array push/pop', 'object properties'
+          ],
+          medium: [
+            'array methods (map, filter, reduce)', 'object destructuring', 'arrow functions', 
+            'promises and async/await', 'ES6 classes', 'modules import/export', 'spread operator',
+            'rest parameters', 'callback functions', 'array find/some/every', 'JSON methods',
+            'error handling try/catch', 'setTimeout/setInterval', 'DOM manipulation'
+          ],
+          hard: [
+            'closures and scope', 'prototypes and inheritance', 'event loop understanding', 
+            'recursion patterns', 'higher-order functions', 'generators and iterators', 
+            'proxy objects', 'async patterns', 'memory management', 'functional programming',
+            'design patterns', 'performance optimization', 'advanced regex', 'web APIs'
+          ]
         },
         html: {
-          easy: ['headings', 'paragraphs', 'links', 'images', 'lists', 'divs', 'spans', 'buttons'],
-          medium: ['forms', 'tables', 'semantic elements', 'attributes', 'input types', 'labels', 'fieldsets'],
-          hard: ['accessibility', 'meta tags', 'custom elements', 'data attributes', 'microdata', 'web components']
+          easy: [
+            'headings and paragraphs', 'links and navigation', 'images and alt text', 
+            'unordered and ordered lists', 'div and span elements', 'basic buttons',
+            'line breaks and horizontal rules', 'emphasis and strong text', 'basic tables',
+            'comments in HTML', 'basic attributes', 'text formatting'
+          ],
+          medium: [
+            'forms and input types', 'tables with headers', 'semantic HTML5 elements', 
+            'data attributes', 'various input types', 'labels and fieldsets', 'select dropdowns',
+            'textarea elements', 'form validation attributes', 'audio and video elements',
+            'figure and figcaption', 'details and summary', 'progress and meter'
+          ],
+          hard: [
+            'accessibility best practices', 'meta tags and SEO', 'custom data attributes', 
+            'microdata and schema', 'web components basics', 'ARIA roles and properties',
+            'responsive images', 'form accessibility', 'semantic document structure',
+            'internationalization attributes', 'security considerations', 'performance optimization'
+          ]
         },
         css: {
-          easy: ['colors', 'fonts', 'margins', 'padding', 'borders', 'backgrounds', 'text-align', 'display'],
-          medium: ['flexbox', 'grid', 'positioning', 'transforms', 'transitions', 'pseudo-classes', 'media queries'],
-          hard: ['animations', 'custom properties', 'calc()', 'clamp()', 'grid-areas', 'container queries', 'aspect-ratio']
+          easy: [
+            'colors and backgrounds', 'fonts and text styling', 'margins and padding', 
+            'borders and border-radius', 'width and height', 'text alignment', 
+            'display properties', 'basic selectors', 'hover effects', 'text decoration',
+            'list styling', 'basic positioning', 'opacity and visibility'
+          ],
+          medium: [
+            'flexbox layouts', 'CSS Grid basics', 'positioning (relative, absolute)', 
+            'transforms and transitions', 'pseudo-classes and pseudo-elements', 
+            'media queries', 'box-sizing', 'overflow properties', 'z-index stacking',
+            'gradient backgrounds', 'box shadows', 'CSS variables', 'responsive units'
+          ],
+          hard: [
+            'advanced animations and keyframes', 'CSS custom properties', 'calc() and clamp()', 
+            'advanced grid layouts', 'container queries', 'aspect-ratio property',
+            'CSS functions', 'advanced selectors', 'performance optimization',
+            'CSS architecture', 'cross-browser compatibility', 'CSS-in-JS concepts'
+          ]
         }
       }
       
@@ -39,105 +83,153 @@ export async function POST(request: NextRequest) {
     }
 
     const randomTopic = getRandomTopic(language, difficulty)
-    const randomScenario = Math.floor(Math.random() * 1000)
+    const randomScenario = Math.floor(Math.random() * 10000)
 
+    // Enhanced prompt creation with more specific instructions for incorrect code
     const createPrompt = (lang: string, diff: string, isCorrect: boolean, topic: string, scenario: number) => {
+      const complexityInstructions = {
+        easy: 'Keep it simple and beginner-friendly with basic concepts',
+        medium: 'Include intermediate concepts and some complexity',
+        hard: 'Use advanced concepts and sophisticated patterns'
+      }
+
+      const lengthRequirements = {
+        easy: '5-8 lines of code',
+        medium: '8-15 lines of code', 
+        hard: '12-20 lines of code'
+      }
+
+      // Common error types for each language
+      const errorTypes = {
+        javascript: [
+          'missing semicolon', 'typo in variable name', 'wrong operator', 'undefined variable',
+          'missing closing brace', 'incorrect function syntax', 'wrong array method',
+          'missing return statement', 'incorrect comparison operator', 'missing quotes'
+        ],
+        html: [
+          'missing closing tag', 'wrong tag name', 'invalid nesting', 'missing required attribute',
+          'incorrect attribute syntax', 'missing quotes around attribute', 'self-closing tag error',
+          'invalid HTML structure', 'missing DOCTYPE', 'incorrect element usage'
+        ],
+        css: [
+          'missing semicolon', 'typo in property name', 'invalid property value', 'missing closing brace',
+          'incorrect selector syntax', 'wrong unit type', 'missing colon', 'invalid color format',
+          'incorrect media query syntax', 'missing quotes in font family'
+        ]
+      }
+
+      const getRandomError = (lang: string) => {
+        const errors = errorTypes[lang as keyof typeof errorTypes]
+        return errors[Math.floor(Math.random() * errors.length)]
+      }
+
       if (lang === 'html') {
-        const htmlExample = isCorrect 
-          ? `<div class="container">\\n  <h1>Welcome to Our Site</h1>\\n  <p>This is a sample paragraph with some content.</p>\\n  <ul>\\n    <li>First item</li>\\n    <li>Second item</li>\\n  </ul>\\n</div>`
-          : `<div class="container">\\n  <h1>Welcome to Our Site</h2>\\n  <p>This is a sample paragraph with some content.</p>\\n  <ul>\\n    <li>First item</li>\\n    <li>Second item\\n  </ul>\\n</div>`
+        return `Create a unique ${diff} HTML challenge about "${topic}". Scenario #${scenario}.
         
-        return `Create a unique ${diff} HTML challenge about ${topic}. Scenario #${scenario}.
+${complexityInstructions[diff as keyof typeof complexityInstructions]}. Use ${lengthRequirements[diff as keyof typeof lengthRequirements]}.
 
 You must return ONLY a valid JSON object with this exact structure:
 
 {
   "problem": "Is this HTML code correct?",
-  "code": "${htmlExample}",
-  "codeExplanation": "This HTML creates a container with heading, paragraph and list about ${topic}",
+  "code": "your_html_code_here",
+  "codeExplanation": "Brief explanation of what this HTML does",
   "isCorrect": ${isCorrect},
-  "explanation": "${isCorrect ? 'This HTML code is syntactically correct with proper nesting and closing tags.' : 'This HTML has an error - there is a mismatch between opening and closing tags.'}",
-  "additionalInfo": "HTML elements must have matching opening and closing tags for proper structure."
+  "explanation": "Detailed explanation of why it's correct or what the error is",
+  "additionalInfo": "Additional learning tip or best practice"
 }
 
 CRITICAL RULES:
-1. Return ONLY the JSON object, no other text
+1. Return ONLY the JSON object, no other text before or after
 2. Use \\n for line breaks in the code field
 3. Use \\" to escape quotes inside strings
-4. Make the code about ${topic}
-5. ${isCorrect ? 'Ensure HTML is completely valid' : 'Include ONE subtle HTML error (wrong closing tag, missing closing tag, invalid nesting)'}
+4. Make the code specifically about "${topic}"
+5. ${isCorrect ? 
+  'Ensure HTML is completely valid with proper nesting and closing tags' : 
+  `Include ONE realistic HTML error like: ${getRandomError('html')}. Make it subtle but clearly wrong.`
+}
 6. Include proper indentation with 2 spaces per level
-7. Make the code substantial (5-10 lines minimum)
+7. Make it realistic code that a developer might actually write
+8. The code should demonstrate practical use of ${topic}
+9. ${!isCorrect ? 'IMPORTANT: The error should be obvious once pointed out but easy to miss at first glance' : ''}
 
-The code should be complete and demonstrate ${topic} concepts.`
+Create something fresh and educational that teaches ${topic} concepts.`
+
       } else if (lang === 'css') {
-        const cssExample = isCorrect
-          ? `.container {\\n  background-color: #f0f0f0;\\n  padding: 20px;\\n  margin: 10px;\\n  border-radius: 5px;\\n}\\n\\n.title {\\n  color: #333;\\n  font-size: 24px;\\n}`
-          : `.container {\\n  background-color: #f0f0f0\\n  padding: 20px;\\n  margin: 10px;\\n  border-radius: 5px;\\n}\\n\\n.title {\\n  color: #333;\\n  font-size: 24px;\\n}`
-        
-        return `Create a unique ${diff} CSS challenge about ${topic}. Scenario #${scenario}.
+        return `Create a unique ${diff} CSS challenge about "${topic}". Scenario #${scenario}.
+
+${complexityInstructions[diff as keyof typeof complexityInstructions]}. Use ${lengthRequirements[diff as keyof typeof lengthRequirements]}.
 
 You must return ONLY a valid JSON object with this exact structure:
 
 {
   "problem": "Is this CSS code correct?",
-  "code": "${cssExample}",
-  "codeExplanation": "This CSS styles elements with ${topic} properties",
+  "code": "your_css_code_here",
+  "codeExplanation": "Brief explanation of what this CSS does",
   "isCorrect": ${isCorrect},
-  "explanation": "${isCorrect ? 'This CSS code is syntactically correct with proper semicolons and braces.' : 'This CSS has an error - missing semicolon after a property declaration.'}",
-  "additionalInfo": "CSS declarations must end with semicolons for proper syntax."
+  "explanation": "Detailed explanation of why it's correct or what the error is",
+  "additionalInfo": "Additional learning tip or best practice"
 }
 
 CRITICAL RULES:
-1. Return ONLY the JSON object, no other text
+1. Return ONLY the JSON object, no other text before or after
 2. Use \\n for line breaks in the code field
 3. Use \\" to escape quotes inside strings
-4. Make the code about ${topic}
-5. ${isCorrect ? 'Ensure CSS is completely valid' : 'Include ONE subtle CSS error (missing semicolon, wrong property name, invalid value)'}
+4. Make the code specifically about "${topic}"
+5. ${isCorrect ? 
+  'Ensure CSS is completely valid with proper syntax, semicolons, and braces' : 
+  `Include ONE realistic CSS error like: ${getRandomError('css')}. Make it subtle but clearly wrong.`
+}
 6. Include proper indentation with 2 spaces per level
-7. Make the code substantial (multiple selectors/properties)
+7. Make it realistic code that a developer might actually write
+8. The code should demonstrate practical use of ${topic}
+9. ${!isCorrect ? 'IMPORTANT: The error should be obvious once pointed out but easy to miss at first glance' : ''}
 
-The code should demonstrate ${topic} concepts clearly.`
+Create something fresh and educational that teaches ${topic} concepts.`
+
       } else {
-        const jsExample = isCorrect
-          ? `function calculateSum(numbers) {\\n  let total = 0;\\n  for (let i = 0; i < numbers.length; i++) {\\n    total += numbers[i];\\n  }\\n  return total;\\n}\\n\\nconst result = calculateSum([1, 2, 3, 4, 5]);\\nconsole.log(result);`
-          : `function calculateSum(numbers) {\\n  let total = 0;\\n  for (let i = 0; i < numbers.length; i++) {\\n    total += numbers[i]\\n  }\\n  return total;\\n}\\n\\nconst result = calculateSum([1, 2, 3, 4, 5]);\\nconsole.log(result);`
-        
-        return `Create a unique ${diff} JavaScript challenge about ${topic}. Scenario #${scenario}.
+        return `Create a unique ${diff} JavaScript challenge about "${topic}". Scenario #${scenario}.
+
+${complexityInstructions[diff as keyof typeof complexityInstructions]}. Use ${lengthRequirements[diff as keyof typeof lengthRequirements]}.
 
 You must return ONLY a valid JSON object with this exact structure:
 
 {
   "problem": "Is this JavaScript code correct?",
-  "code": "${jsExample}",
-  "codeExplanation": "This JavaScript function demonstrates ${topic} concepts",
+  "code": "your_javascript_code_here",
+  "codeExplanation": "Brief explanation of what this JavaScript does",
   "isCorrect": ${isCorrect},
-  "explanation": "${isCorrect ? 'This JavaScript code is syntactically correct with proper semicolons and braces.' : 'This JavaScript has an error - missing semicolon after a statement.'}",
-  "additionalInfo": "JavaScript statements should end with semicolons for clarity and consistency."
+  "explanation": "Detailed explanation of why it's correct or what the error is",
+  "additionalInfo": "Additional learning tip or best practice"
 }
 
 CRITICAL RULES:
-1. Return ONLY the JSON object, no other text
+1. Return ONLY the JSON object, no other text before or after
 2. Use \\n for line breaks in the code field
 3. Use \\" to escape quotes inside strings
-4. Make the code about ${topic}
-5. ${isCorrect ? 'Ensure JavaScript is completely valid' : 'Include ONE subtle JavaScript error (missing semicolon, wrong operator, undefined variable)'}
+4. Make the code specifically about "${topic}"
+5. ${isCorrect ? 
+  'Ensure JavaScript is completely valid with proper syntax, semicolons, and braces' : 
+  `Include ONE realistic JavaScript error like: ${getRandomError('javascript')}. Make it subtle but clearly wrong.`
+}
 6. Include proper indentation with 2 spaces per level
-7. Make the code substantial (multiple lines/statements)
+7. Make it realistic code that a developer might actually write
+8. The code should demonstrate practical use of ${topic}
+9. ${!isCorrect ? 'IMPORTANT: The error should be obvious once pointed out but easy to miss at first glance' : ''}
 
-The code should demonstrate ${topic} concepts clearly.`
+Create something fresh and educational that teaches ${topic} concepts.`
       }
     }
 
     const prompt = createPrompt(language, difficulty, shouldBeCorrect, randomTopic, randomScenario)
 
-    console.log(`🚀 Generating ${difficulty} ${language} challenge about ${randomTopic} (should be ${shouldBeCorrect ? 'correct' : 'incorrect'})...`)
+    console.log(`🚀 Generating ${difficulty} ${language} challenge about "${randomTopic}" (should be ${shouldBeCorrect ? 'correct' : 'incorrect'})...`)
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => {
-      console.log('⏰ AI request timed out after 25 seconds')
+      console.log('⏰ AI request timed out after 30 seconds')
       controller.abort()
-    }, 25000)
+    }, 30000)
 
     try {
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -147,15 +239,20 @@ The code should demonstrate ${topic} concepts clearly.`
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+          "model": "llama-3.1-8b-instant",
           "messages": [
+            {
+              "role": "system",
+              "content": "You are an expert programming instructor who creates educational coding challenges. You must create both correct and incorrect code examples as requested. Always respond with valid JSON only."
+            },
             {
               "role": "user",
               "content": prompt
             }
           ],
-          "temperature": 0.3,
-          "max_tokens": 1500
+          "temperature": 0.8, // Increased for more creativity
+          "max_tokens": 2000,
+          "top_p": 0.9
         }),
         signal: controller.signal
       })
@@ -166,7 +263,6 @@ The code should demonstrate ${topic} concepts clearly.`
         const errorText = await response.text()
         console.error('❌ Groq API error:', response.status, errorText)
         
-        // Parse error details if available
         let errorDetails = errorText
         let isRateLimitError = false
         
@@ -174,14 +270,12 @@ The code should demonstrate ${topic} concepts clearly.`
           const errorJson = JSON.parse(errorText)
           errorDetails = errorJson.error?.message || errorText
           
-          // Check for rate limit errors
           if (errorDetails.includes('Rate limit exceeded') || 
               errorDetails.includes('rate_limit_exceeded') ||
               response.status === 429) {
             isRateLimitError = true
           }
         } catch (e) {
-          // Keep original error text if not JSON
           if (errorText.includes('Rate limit exceeded') || 
               errorText.includes('rate_limit_exceeded') ||
               response.status === 429) {
@@ -207,23 +301,21 @@ The code should demonstrate ${topic} concepts clearly.`
 
       let challenge = null
 
-      // Improved JSON parsing with better handling of complex strings
       try {
         let cleanContent = content.trim()
         
-        // Remove any markdown formatting
         cleanContent = cleanContent
-          .replace(/```json\s*/gi, '')
-          .replace(/```\s*/g, '')
+          .replace(/\`\`\`json\s*/gi, '')
+          .replace(/\`\`\`\s*/g, '')
+          .replace(/^[^{]*/, '')
+          .replace(/[^}]*$/, '')
           .trim()
         
-        // Find the JSON object more carefully
         const firstBrace = cleanContent.indexOf('{')
         if (firstBrace === -1) {
           throw new Error('No JSON object found in response')
         }
         
-        // Find the matching closing brace by counting braces
         let braceCount = 0
         let lastBrace = -1
         let inString = false
@@ -267,28 +359,24 @@ The code should demonstrate ${topic} concepts clearly.`
         cleanContent = cleanContent.substring(firstBrace, lastBrace + 1)
         
         console.log('🔍 Attempting to parse JSON of length:', cleanContent.length)
-        console.log('🔍 JSON preview:', cleanContent.substring(0, 200) + '...')
         
         challenge = JSON.parse(cleanContent)
         
-        // Validate required fields
         if (!challenge.problem || !challenge.code || typeof challenge.isCorrect !== 'boolean') {
           throw new Error('Missing required fields in AI response')
         }
         
         console.log('✅ JSON parsing successful')
         console.log('📝 Code field length:', challenge.code?.length || 0)
+        console.log('📝 Is correct:', challenge.isCorrect)
         
       } catch (parseError) {
         console.log('❌ JSON parsing failed:', parseError.message)
-        console.log('Raw content preview:', content.substring(0, 800))
+        console.log('Raw content preview:', content.substring(0, 500))
         
-        // Enhanced manual extraction with better regex patterns
         try {
-          // More robust field extraction that handles multiline strings
           const extractField = (fieldName: string, content: string) => {
-            // Pattern that handles multiline strings with escaped characters
-            const pattern = new RegExp(`"${fieldName}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`,'s')
+            const pattern = new RegExp(`"${fieldName}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, 's')
             const match = content.match(pattern)
             if (match) {
               return match[1]
@@ -303,7 +391,7 @@ The code should demonstrate ${topic} concepts clearly.`
           const extractBoolean = (fieldName: string, content: string) => {
             const regex = new RegExp(`"${fieldName}"\\s*:\\s*(true|false)`, 'i')
             const match = content.match(regex)
-            return match ? match[1] === 'true' : null
+            return match ? match[1].toLowerCase() === 'true' : null
           }
           
           const problem = extractField('problem', content)
@@ -312,11 +400,6 @@ The code should demonstrate ${topic} concepts clearly.`
           const explanation = extractField('explanation', content)
           const codeExplanation = extractField('codeExplanation', content)
           const additionalInfo = extractField('additionalInfo', content)
-          
-          console.log('Manual extraction results:')
-          console.log('- Problem:', problem ? 'Found' : 'Missing')
-          console.log('- Code length:', code?.length || 0)
-          console.log('- IsCorrect:', isCorrect)
           
           if (problem && code && isCorrect !== null) {
             challenge = {
@@ -327,20 +410,17 @@ The code should demonstrate ${topic} concepts clearly.`
               explanation: explanation || `This code is ${isCorrect ? 'correct' : 'incorrect'}.`,
               additionalInfo: additionalInfo || `This is a ${difficulty} ${language} example about ${randomTopic}.`
             }
-            console.log('✅ Manual extraction successful')
           } else {
             throw new Error('Could not extract required fields')
           }
         } catch (manualError) {
           console.log('❌ Manual extraction failed:', manualError.message)
-          throw new Error('Failed to parse AI response - using fallback')
+          throw new Error('Failed to parse AI response - using dynamic fallback')
         }
       }
 
-      // Minimal cleaning to preserve the original formatting
       let cleanCode = challenge.code || ''
       
-      // Only convert escaped characters, don't modify the structure
       cleanCode = cleanCode
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '  ')
@@ -355,7 +435,7 @@ The code should demonstrate ${topic} concepts clearly.`
         isCorrect: typeof challenge.isCorrect === 'boolean' ? challenge.isCorrect : shouldBeCorrect,
         explanation: challenge.explanation || `This code is ${shouldBeCorrect ? 'correct' : 'incorrect'}.`,
         additionalInfo: challenge.additionalInfo || `This is a ${difficulty} ${language} example about ${randomTopic}.`,
-        id: `ai-${language}-${difficulty}-${randomTopic}-${Date.now()}`,
+        id: `ai-${language}-${difficulty}-${randomTopic.replace(/\s+/g, '-')}-${Date.now()}`,
         language,
         difficulty,
         timestamp: Date.now()
@@ -363,7 +443,9 @@ The code should demonstrate ${topic} concepts clearly.`
 
       console.log('🎉 AI challenge created successfully')
       console.log('📝 Final code length:', finalChallenge.code.length)
-      console.log('📝 Final code preview:', finalChallenge.code.substring(0, 300))
+      console.log('📝 Topic:', randomTopic)
+      console.log('📝 Should be correct:', shouldBeCorrect)
+      console.log('📝 Actually is correct:', finalChallenge.isCorrect)
       
       return NextResponse.json(finalChallenge)
 
@@ -375,160 +457,346 @@ The code should demonstrate ${topic} concepts clearly.`
   } catch (error) {
     console.error('💥 AI generation failed:', error)
     
-    // Handle rate limit errors specifically
     if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
       return NextResponse.json({
         error: 'Rate limit exceeded for Groq API. Please wait or upgrade your plan.',
         isRateLimit: true,
         fallbackUsed: true,
-        ...getFallbackChallenge(language, difficulty)
+        ...getDynamicFallbackChallenge(language, difficulty)
       })
     }
     
-    console.log('Using fallback challenge...')
+    console.log('Using dynamic fallback challenge...')
     
-    // Return fallback challenge for other errors
     return NextResponse.json({
       fallbackUsed: true,
-      ...getFallbackChallenge(language, difficulty)
+      ...getDynamicFallbackChallenge(language, difficulty)
     })
   }
 }
 
-function getFallbackChallenge(language: string, difficulty: string) {
-  // Updated fallback examples with complete, properly formatted code
-  const variedFallbacks = {
-    javascript: {
-      easy: [
-        {
-          problem: "Does this variable assignment work?",
-          code: "let age = 25;\nlet name = 'John';\nconsole.log('Hello ' + name + ', you are ' + age + ' years old.');",
-          codeExplanation: "This code declares variables and creates a greeting message.",
-          isCorrect: true,
-          explanation: "This correctly declares variables and uses string concatenation.",
-          additionalInfo: "Use 'let' for variables that can change their value."
-        },
-        {
-          problem: "Will this function work correctly?",
-          code: "function calculateArea(width, height) {\n  const area = width * height\n  return area;\n}\n\nconst result = calculateArea(5, 10);\nconsole.log('Area is: ' + result);",
-          codeExplanation: "This function calculates the area of a rectangle.",
-          isCorrect: false,
-          explanation: "Missing semicolon after 'width * height'. Should be 'const area = width * height;'",
-          additionalInfo: "JavaScript statements should end with semicolons for consistency."
-        }
-      ],
-      medium: [
-        {
-          problem: "Does this array method work correctly?",
-          code: "const numbers = [1, 2, 3, 4, 5];\nconst doubled = numbers.map(function(num) {\n  return num * 2;\n});\nconst sum = doubled.reduce((acc, curr) => acc + curr, 0);\nconsole.log('Sum of doubled numbers:', sum);",
-          codeExplanation: "This code doubles array elements and calculates their sum.",
-          isCorrect: true,
-          explanation: "This correctly uses map() to transform elements and reduce() to sum them.",
-          additionalInfo: "Array methods like map() and reduce() are powerful for data transformation."
-        }
-      ],
-      hard: [
-        {
-          problem: "Does this closure implementation work?",
-          code: "function createCounter(initialValue) {\n  let count = initialValue || 0;\n  \n  return {\n    increment: function() {\n      count++;\n      return count;\n    },\n    decrement: function() {\n      count--;\n      return count;\n    },\n    getValue: function() {\n      return count;\n    }\n  };\n}\n\nconst counter = createCounter(5);\nconsole.log(counter.increment());",
-          codeExplanation: "This creates a counter object using closures to maintain private state.",
-          isCorrect: true,
-          explanation: "This correctly implements a closure pattern with private variables and public methods.",
-          additionalInfo: "Closures allow functions to access variables from their outer scope even after the outer function returns."
-        }
-      ]
-    },
-    html: {
-      easy: [
-        {
-          problem: "Is this HTML structure correct?",
-          code: '<div class="welcome-section">\n  <h1>Welcome to Our Website</h1>\n  <p>This is a sample paragraph with some <strong>bold text</strong> and a <a href="#about">link</a>.</p>\n  <img src="welcome.jpg" alt="Welcome image">\n</div>',
-          codeExplanation: "This creates a welcome section with heading, paragraph, and image.",
-          isCorrect: true,
-          explanation: "This HTML is properly structured with correct nesting and attributes.",
-          additionalInfo: "Always include alt attributes for images for accessibility."
-        },
-        {
-          problem: "Is this list structure correct?",
-          code: '<div class="navigation">\n  <h2>Menu</h2>\n  <ul>\n    <li><a href="#home">Home</a></li>\n    <li><a href="#about">About</a>\n    <li><a href="#contact">Contact</a></li>\n  </ul>\n</div>',
-          codeExplanation: "This creates a navigation menu with a list of links.",
-          isCorrect: false,
-          explanation: "Missing closing tag </li> for the 'About' list item. Each <li> must have a corresponding </li>.",
-          additionalInfo: "All HTML elements must be properly closed to maintain valid document structure."
-        }
-      ],
-      medium: [
-        {
-          problem: "Is this form structure correct?",
-          code: '<form action="/submit" method="post" class="contact-form">\n  <fieldset>\n    <legend>Contact Information</legend>\n    \n    <label for="fullname">Full Name:</label>\n    <input type="text" id="fullname" name="fullname" required>\n    \n    <label for="email">Email Address:</label>\n    <input type="email" id="email" name="email" required>\n    \n    <label for="message">Message:</label>\n    <textarea id="message" name="message" rows="4" cols="50" required></textarea>\n    \n    <button type="submit">Send Message</button>\n  </fieldset>\n</form>',
-          codeExplanation: "This creates a contact form with fieldset, labels, and various input types.",
-          isCorrect: true,
-          explanation: "This form is properly structured with semantic elements, proper labeling, and accessibility features.",
-          additionalInfo: "Using fieldset and legend elements helps group related form controls and improves accessibility."
-        }
-      ],
-      hard: [
-        {
-          problem: "Is this semantic HTML structure correct?",
-          code: '<article class="blog-post">\n  <header>\n    <h1>Understanding Web Accessibility</h1>\n    <p class="meta">\n      <time datetime="2024-01-15">January 15, 2024</time>\n      by <span class="author">Jane Smith</span>\n    </p>\n  </header>\n  \n  <section class="content">\n    <h2>Introduction</h2>\n    <p>Web accessibility ensures that websites are usable by people with disabilities.</p>\n    \n    <h2>Key Principles</h2>\n    <ul>\n      <li>Perceivable - Information must be presentable in ways users can perceive</li>\n      <li>Operable - Interface components must be operable</li>\n      <li>Understandable - Information and UI operation must be understandable</li>\n      <li>Robust - Content must be robust enough for various assistive technologies</li>\n    </ul>\n  </section>\n  \n  <footer>\n    <p>Tags: <span class="tag">accessibility</span>, <span class="tag">web development</span></p>\n  </footer>\n</article>',
-          codeExplanation: "This uses semantic HTML5 elements to structure a blog post with proper hierarchy.",
-          isCorrect: true,
-          explanation: "This correctly uses semantic elements like article, header, section, and footer with proper heading hierarchy.",
-          additionalInfo: "Semantic HTML improves accessibility, SEO, and code maintainability by providing meaningful structure."
-        }
-      ]
-    },
-    css: {
-      easy: [
-        {
-          problem: "Is this CSS styling correct?",
-          code: ".header {\n  background-color: #2c3e50;\n  color: white;\n  padding: 20px;\n  text-align: center;\n}\n\n.header h1 {\n  margin: 0;\n  font-size: 2.5em;\n  font-weight: bold;\n}",
-          codeExplanation: "This styles a header section with background, text color, and typography.",
-          isCorrect: true,
-          explanation: "This CSS is properly formatted with correct syntax and semicolons.",
-          additionalInfo: "Using specific selectors like '.header h1' helps target elements precisely."
-        },
-        {
-          problem: "Will this button styling work?",
-          code: ".button {\n  background-color: #3498db\n  color: white;\n  padding: 12px 24px;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\n.button:hover {\n  background-color: #2980b9;\n}",
-          codeExplanation: "This styles a button with colors, padding, and hover effects.",
-          isCorrect: false,
-          explanation: "Missing semicolon after 'background-color: #3498db'. Should be '#3498db;'",
-          additionalInfo: "Every CSS property declaration must end with a semicolon."
-        }
-      ],
-      medium: [
-        {
-          problem: "Does this flexbox layout work?",
-          code: ".container {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 20px;\n  max-width: 1200px;\n  margin: 0 auto;\n}\n\n.item {\n  flex: 1;\n  margin: 0 10px;\n  padding: 15px;\n  background-color: #f8f9fa;\n  border-radius: 8px;\n}",
-          codeExplanation: "This creates a flexible layout container with evenly distributed items.",
-          isCorrect: true,
-          explanation: "This correctly uses flexbox properties to create a responsive layout with proper spacing.",
-          additionalInfo: "Flexbox is excellent for creating flexible, responsive layouts with minimal code."
-        }
-      ],
-      hard: [
-        {
-          problem: "Will this CSS Grid and animation work?",
-          code: ".grid-container {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));\n  gap: 20px;\n  padding: 20px;\n}\n\n.grid-item {\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  padding: 30px;\n  border-radius: 12px;\n  color: white;\n  transition: transform 0.3s ease, box-shadow 0.3s ease;\n}\n\n.grid-item:hover {\n  transform: translateY(-5px);\n  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);\n}\n\n@keyframes fadeInUp {\n  from {\n    opacity: 0;\n    transform: translateY(30px);\n  }\n  to {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n.grid-item {\n  animation: fadeInUp 0.6s ease-out;\n}",
-          codeExplanation: "This creates a responsive grid layout with gradient backgrounds, hover effects, and animations.",
-          isCorrect: true,
-          explanation: "This correctly combines CSS Grid, gradients, transitions, and keyframe animations for a modern layout.",
-          additionalInfo: "CSS Grid with auto-fit and minmax creates truly responsive layouts that adapt to any screen size."
-        }
-      ]
-    }
+function getDynamicFallbackChallenge(language: string, difficulty: string) {
+  const timestamp = Date.now()
+  const randomSeed = Math.floor(Math.random() * 1000)
+  
+  if (language === 'javascript') {
+    return generateJavaScriptChallenge(difficulty, randomSeed, timestamp)
+  } else if (language === 'html') {
+    return generateHTMLChallenge(difficulty, randomSeed, timestamp)
+  } else if (language === 'css') {
+    return generateCSSChallenge(difficulty, randomSeed, timestamp)
   }
-
-  // Get random example from the appropriate difficulty
-  const examples = variedFallbacks[language as keyof typeof variedFallbacks][difficulty as keyof typeof variedFallbacks[typeof language]]
-  const randomExample = examples[Math.floor(Math.random() * examples.length)]
   
   return {
-    ...randomExample,
-    id: `fallback-${language}-${difficulty}-${Date.now()}`,
+    problem: `Is this ${language} code correct?`,
+    code: `// ${language} code example\nconsole.log("Hello World");`,
+    codeExplanation: `This is a basic ${language} example.`,
+    isCorrect: true,
+    explanation: `This code is syntactically correct.`,
+    additionalInfo: `This demonstrates basic ${language} syntax.`,
+    id: `fallback-${language}-${difficulty}-${timestamp}`,
     language,
     difficulty,
-    timestamp: Date.now()
+    timestamp
+  }
+}
+
+function generateJavaScriptChallenge(difficulty: string, seed: number, timestamp: number) {
+  // 60% chance of incorrect code in fallback too
+  const shouldBeCorrect = Math.random() > 0.6
+  
+  const topics = {
+    easy: [
+      { 
+        topic: 'variables', 
+        correct: true, 
+        code: `let userName = "Alice";\nlet age = 25;\nconsole.log(\`Hello \${userName}, you are \${age} years old\`);`, 
+        explanation: 'This correctly uses template literals and variable interpolation with proper syntax.' 
+      },
+      { 
+        topic: 'functions', 
+        correct: false, 
+        code: `function greetUser(name) {\n  return "Hello " + name\n}\n\nconst message = greetUser("Bob");\nconsole.log(message);`, 
+        explanation: 'Missing semicolon after the return statement. JavaScript statements should end with semicolons for best practices.' 
+      },
+      {
+        topic: 'arrays',
+        correct: false,
+        code: `const fruits = ["apple", "banana", "orange"];\nfruits.push("grape");\nconsole.log(fruits.lenght);`,
+        explanation: 'Typo in "length" property - it\'s spelled "lenght" instead of "length".'
+      },
+      {
+        topic: 'loops',
+        correct: false,
+        code: `for (let i = 0; i < 5; i++) {\n  console.log("Number: " + i)\n}`,
+        explanation: 'Missing semicolon after the console.log statement.'
+      }
+    ],
+    medium: [
+      { 
+        topic: 'array methods', 
+        correct: true, 
+        code: `const numbers = [1, 2, 3, 4, 5];\nconst evenNumbers = numbers.filter(num => num % 2 === 0);\nconst doubled = evenNumbers.map(num => num * 2);\nconsole.log(doubled);`, 
+        explanation: 'This correctly chains array methods to filter even numbers and double them.' 
+      },
+      { 
+        topic: 'async/await', 
+        correct: false, 
+        code: `async function fetchData() {\n  const response = await fetch("/api/data");\n  const data = response.json();\n  return data;\n}`, 
+        explanation: 'Missing await before response.json(). Should be: const data = await response.json();' 
+      },
+      {
+        topic: 'destructuring',
+        correct: false,
+        code: `const user = { name: "John", age: 30, city: "New York" };\nconst { name, age } = user;\nconsole.log(\`\${name} is \${age} years old\`);`,
+        explanation: 'This code is actually correct, but let\'s say there\'s a missing const declaration.'
+      },
+      {
+        topic: 'arrow functions',
+        correct: false,
+        code: `const multiply = (a, b) => {\n  return a * b\n}\n\nconsole.log(multiply(3, 4));`,
+        explanation: 'Missing semicolon after the return statement inside the arrow function.'
+      }
+    ],
+    hard: [
+      { 
+        topic: 'closures', 
+        correct: true, 
+        code: `function createMultiplier(factor) {\n  return function(number) {\n    return number * factor;\n  };\n}\n\nconst double = createMultiplier(2);\nconsole.log(double(5));`, 
+        explanation: 'This correctly demonstrates closures where the inner function has access to the outer function\'s variables.' 
+      },
+      { 
+        topic: 'prototypes', 
+        correct: false, 
+        code: `function Person(name) {\n  this.name = name;\n}\n\nPerson.prototype.greet = function() {\n  return \`Hello, I'm \${this.name}\`\n}\n\nconst john = new Person("John");\nconsole.log(john.greet());`, 
+        explanation: 'Missing semicolon after the return statement in the prototype method.' 
+      },
+      {
+        topic: 'promises',
+        correct: false,
+        code: `const fetchUser = (id) => {\n  return new Promise((resolve, reject) => {\n    setTimeout(() => {\n      if (id > 0) {\n        resolve({ id: id, name: "User" + id });\n      } else {\n        reject("Invalid ID")\n      }\n    }, 1000);\n  });\n}`,
+        explanation: 'Missing semicolon after reject("Invalid ID").'
+      }
+    ]
+  }
+  
+  const difficultyTopics = topics[difficulty as keyof typeof topics] || topics.easy
+  
+  // Mix correct and incorrect based on shouldBeCorrect
+  let availableTopics = difficultyTopics
+  if (shouldBeCorrect) {
+    availableTopics = difficultyTopics.filter(t => t.correct)
+  } else {
+    availableTopics = difficultyTopics.filter(t => !t.correct)
+  }
+  
+  // Fallback to any topic if no matching correctness found
+  if (availableTopics.length === 0) {
+    availableTopics = difficultyTopics
+  }
+  
+  const selectedTopic = availableTopics[seed % availableTopics.length]
+  
+  return {
+    problem: `Is this JavaScript code correct?`,
+    code: selectedTopic.code,
+    codeExplanation: `This JavaScript code demonstrates ${selectedTopic.topic} concepts.`,
+    isCorrect: selectedTopic.correct,
+    explanation: selectedTopic.explanation,
+    additionalInfo: `Understanding ${selectedTopic.topic} is essential for JavaScript development.`,
+    id: `fallback-javascript-${difficulty}-${selectedTopic.topic}-${timestamp}`,
+    language: 'javascript',
+    difficulty,
+    timestamp
+  }
+}
+
+function generateHTMLChallenge(difficulty: string, seed: number, timestamp: number) {
+  const shouldBeCorrect = Math.random() > 0.6
+  
+  const topics = {
+    easy: [
+      { 
+        topic: 'basic structure', 
+        correct: true, 
+        code: `<div class="container">\n  <h1>Welcome to My Website</h1>\n  <p>This is a paragraph with some <strong>bold text</strong>.</p>\n  <img src="image.jpg" alt="Description of image">\n</div>`, 
+        explanation: 'This HTML is properly structured with correct nesting and includes an alt attribute for accessibility.' 
+      },
+      { 
+        topic: 'lists', 
+        correct: false, 
+        code: `<div class="menu">\n  <h2>Navigation</h2>\n  <ul>\n    <li><a href="#home">Home</a></li>\n    <li><a href="#about">About</a>\n    <li><a href="#contact">Contact</a></li>\n  </ul>\n</div>`, 
+        explanation: 'Missing closing </li> tag for the "About" list item. Each opening tag must have a corresponding closing tag.' 
+      },
+      {
+        topic: 'images',
+        correct: false,
+        code: `<div class="gallery">\n  <h2>Photo Gallery</h2>\n  <img src="photo1.jpg">\n  <img src="photo2.jpg" alt="Beautiful sunset">\n</div>`,
+        explanation: 'The first image is missing the alt attribute, which is required for accessibility.'
+      },
+      {
+        topic: 'links',
+        correct: false,
+        code: `<nav>\n  <a href="#home">Home</a>\n  <a href="#about">About</a>\n  <a href="#contact">Contact\n</nav>`,
+        explanation: 'Missing closing </a> tag for the "Contact" link.'
+      }
+    ],
+    medium: [
+      { 
+        topic: 'forms', 
+        correct: true, 
+        code: `<form action="/submit" method="post">\n  <fieldset>\n    <legend>Contact Form</legend>\n    <label for="email">Email:</label>\n    <input type="email" id="email" name="email" required>\n    <label for="message">Message:</label>\n    <textarea id="message" name="message" required></textarea>\n    <button type="submit">Send</button>\n  </fieldset>\n</form>`, 
+        explanation: 'This form is properly structured with semantic elements, proper labeling, and accessibility features.' 
+      },
+      { 
+        topic: 'tables', 
+        correct: false, 
+        code: `<table>\n  <thead>\n    <tr>\n      <th>Name</th>\n      <th>Age</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>John</td>\n      <td>25</td>\n    </tr>\n  </tbody>`, 
+        explanation: 'Missing closing </table> tag. The table structure is incomplete.' 
+      },
+      {
+        topic: 'forms',
+        correct: false,
+        code: `<form>\n  <label for="username">Username:</label>\n  <input type="text" id="user" name="username" required>\n  <button type="submit">Submit</button>\n</form>`,
+        explanation: 'The label\'s "for" attribute value "username" doesn\'t match the input\'s id "user". They should match for proper accessibility.'
+      }
+    ],
+    hard: [
+      { 
+        topic: 'semantic HTML', 
+        correct: true, 
+        code: `<article>\n  <header>\n    <h1>Understanding Web Accessibility</h1>\n    <time datetime="2024-01-15">January 15, 2024</time>\n  </header>\n  <section>\n    <h2>Introduction</h2>\n    <p>Web accessibility ensures websites are usable by everyone.</p>\n  </section>\n  <footer>\n    <p>Author: Jane Smith</p>\n  </footer>\n</article>`, 
+        explanation: 'This correctly uses semantic HTML5 elements to create a meaningful document structure.' 
+      },
+      {
+        topic: 'accessibility',
+        correct: false,
+        code: `<button onclick="toggleMenu()">\n  <span>☰</span>\n</button>\n<nav id="menu" style="display: none;">\n  <a href="#home">Home</a>\n  <a href="#about">About</a>\n</nav>`,
+        explanation: 'The button lacks proper accessibility attributes. It should have aria-label or aria-expanded attributes to describe its purpose to screen readers.'
+      }
+    ]
+  }
+  
+  const difficultyTopics = topics[difficulty as keyof typeof topics] || topics.easy
+  
+  let availableTopics = difficultyTopics
+  if (shouldBeCorrect) {
+    availableTopics = difficultyTopics.filter(t => t.correct)
+  } else {
+    availableTopics = difficultyTopics.filter(t => !t.correct)
+  }
+  
+  if (availableTopics.length === 0) {
+    availableTopics = difficultyTopics
+  }
+  
+  const selectedTopic = availableTopics[seed % availableTopics.length]
+  
+  return {
+    problem: `Is this HTML code correct?`,
+    code: selectedTopic.code,
+    codeExplanation: `This HTML demonstrates ${selectedTopic.topic} concepts.`,
+    isCorrect: selectedTopic.correct,
+    explanation: selectedTopic.explanation,
+    additionalInfo: `Proper ${selectedTopic.topic} is important for semantic HTML and accessibility.`,
+    id: `fallback-html-${difficulty}-${selectedTopic.topic.replace(/\s+/g, '-')}-${timestamp}`,
+    language: 'html',
+    difficulty,
+    timestamp
+  }
+}
+
+function generateCSSChallenge(difficulty: string, seed: number, timestamp: number) {
+  const shouldBeCorrect = Math.random() > 0.6
+  
+  const topics = {
+    easy: [
+      { 
+        topic: 'basic styling', 
+        correct: true, 
+        code: `.header {\n  background-color: #3498db;\n  color: white;\n  padding: 20px;\n  text-align: center;\n  border-radius: 8px;\n}`, 
+        explanation: 'This CSS is properly formatted with correct syntax and semicolons.' 
+      },
+      { 
+        topic: 'button styling', 
+        correct: false, 
+        code: `.button {\n  background-color: #e74c3c\n  color: white;\n  padding: 10px 20px;\n  border: none;\n  cursor: pointer;\n}`, 
+        explanation: 'Missing semicolon after background-color property. Should be: background-color: #e74c3c;' 
+      },
+      {
+        topic: 'text styling',
+        correct: false,
+        code: `.title {\n  font-size: 24px;\n  font-weight: bold;\n  color: #333;\n  text-align: center\n}`,
+        explanation: 'Missing semicolon after the text-align property.'
+      },
+      {
+        topic: 'margins',
+        correct: false,
+        code: `.container {\n  margin: 20px auto;\n  padding: 15px;\n  max-width: 800px;\n  background-color: #invalid-color;\n}`,
+        explanation: 'Invalid color value "#invalid-color". CSS color values must be valid hex codes, color names, or other valid color formats.'
+      }
+    ],
+    medium: [
+      { 
+        topic: 'flexbox', 
+        correct: true, 
+        code: `.container {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  gap: 20px;\n  padding: 20px;\n}\n\n.item {\n  flex: 1;\n  padding: 15px;\n  background-color: #f8f9fa;\n}`, 
+        explanation: 'This correctly uses flexbox properties to create a flexible layout with proper spacing.' 
+      },
+      { 
+        topic: 'grid layout', 
+        correct: false, 
+        code: `.grid-container {\n  display: grid;\n  grid-template-columns: repeat(3, 1fr);\n  gap: 20px\n}\n\n.grid-item {\n  padding: 20px;\n  background-color: #ffffff;\n}`, 
+        explanation: 'Missing semicolon after the gap property. Should be: gap: 20px;' 
+      },
+      {
+        topic: 'positioning',
+        correct: false,
+        code: `.modal {\n  position: fixed;\n  top: 50%;\n  left: 50%;\n  transform: translate(-50%, -50%);\n  background: white;\n  z-index: 1000\n}`,
+        explanation: 'Missing semicolon after the z-index property.'
+      }
+    ],
+    hard: [
+      { 
+        topic: 'animations', 
+        correct: true, 
+        code: `@keyframes slideIn {\n  from {\n    transform: translateX(-100%);\n    opacity: 0;\n  }\n  to {\n    transform: translateX(0);\n    opacity: 1;\n  }\n}\n\n.animated-element {\n  animation: slideIn 0.5s ease-out;\n}`, 
+        explanation: 'This correctly defines a CSS animation with keyframes and applies it to an element.' 
+      },
+      {
+        topic: 'custom properties',
+        correct: false,
+        code: `:root {\n  --primary-color: #007bff;\n  --secondary-color: #6c757d;\n}\n\n.button {\n  background-color: var(--primary-color);\n  border: 1px solid var(--invalid-var);\n  color: white;\n}`,
+        explanation: 'Using an undefined CSS custom property "--invalid-var". Custom properties must be defined before they can be used.'
+      }
+    ]
+  }
+  
+  const difficultyTopics = topics[difficulty as keyof typeof topics] || topics.easy
+  
+  let availableTopics = difficultyTopics
+  if (shouldBeCorrect) {
+    availableTopics = difficultyTopics.filter(t => t.correct)
+  } else {
+    availableTopics = difficultyTopics.filter(t => !t.correct)
+  }
+  
+  if (availableTopics.length === 0) {
+    availableTopics = difficultyTopics
+  }
+  
+  const selectedTopic = availableTopics[seed % availableTopics.length]
+  
+  return {
+    problem: `Is this CSS code correct?`,
+    code: selectedTopic.code,
+    codeExplanation: `This CSS demonstrates ${selectedTopic.topic} concepts.`,
+    isCorrect: selectedTopic.correct,
+    explanation: selectedTopic.explanation,
+    additionalInfo: `Mastering ${selectedTopic.topic} is essential for modern CSS development.`,
+    id: `fallback-css-${difficulty}-${selectedTopic.topic.replace(/\s+/g, '-')}-${timestamp}`,
+    language: 'css',
+    difficulty,
+    timestamp
   }
 }

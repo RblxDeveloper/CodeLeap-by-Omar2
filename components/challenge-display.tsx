@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,11 @@ interface ChallengeDisplayProps {
 
 export function ChallengeDisplay({ challenge, onAnswer }: ChallengeDisplayProps) {
   const [showAnswer, setShowAnswer] = useState(challenge.userAnswer !== undefined)
+
+  // Add useEffect to update showAnswer when challenge changes
+  useEffect(() => {
+    setShowAnswer(challenge.userAnswer !== undefined)
+  }, [challenge.userAnswer])
 
   const handleAnswer = (answer: boolean) => {
     onAnswer(answer)
@@ -156,24 +161,6 @@ export function ChallengeDisplay({ challenge, onAnswer }: ChallengeDisplayProps)
                   }`}>
                     {challenge.userAnswer === challenge.isCorrect ? '🎉 Correct!' : '❌ Incorrect!'}
                   </span>
-                </div>
-                <div className={`text-sm space-y-1 ${
-                  challenge.userAnswer === challenge.isCorrect 
-                    ? 'text-green-700 dark:text-green-300' 
-                    : 'text-red-700 dark:text-red-300'
-                }`}>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium">Your answer:</span>
-                    <Badge variant={challenge.userAnswer ? "default" : "destructive"} className="text-xs">
-                      {challenge.userAnswer ? 'Correct' : 'Incorrect'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium">Actual result:</span>
-                    <Badge variant={challenge.isCorrect ? "default" : "destructive"} className="text-xs">
-                      {challenge.isCorrect ? 'Correct' : 'Incorrect'}
-                    </Badge>
-                  </div>
                 </div>
               </div>
             )}

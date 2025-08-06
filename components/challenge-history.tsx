@@ -5,26 +5,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
-import { CheckCircle, XCircle, Clock, Code, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle, XCircle, History, TrendingUp, Target, Code } from 'lucide-react'
 import { Challenge } from '@/app/page'
-import { CodeHighlighter } from './code-highlighter'
 
 interface ChallengeHistoryProps {
   challenges: Challenge[]
 }
 
 export function ChallengeHistory({ challenges }: ChallengeHistoryProps) {
-  const [expandedChallenges, setExpandedChallenges] = useState<Set<string>>(new Set())
+  const answeredChallenges = challenges.filter(c => c.userAnswer !== undefined)
+  const correctAnswers = answeredChallenges.filter(c => c.userAnswer === c.isCorrect)
+  const accuracy = answeredChallenges.length > 0 ? Math.round((correctAnswers.length / answeredChallenges.length) * 100) : 0
 
-  const toggleExpanded = (challengeId: string) => {
-    const newExpanded = new Set(expandedChallenges)
-    if (newExpanded.has(challengeId)) {
-      newExpanded.delete(challengeId)
-    } else {
-      newExpanded.add(challengeId)
+  const getLanguageIcon = (language: string) => {
+    switch (language) {
+      case 'javascript': return '🟨'
+      case 'html': return '🟧'
+      case 'css': return '🟦'
+      default: return '📄'
     }
-    setExpandedChallenges(newExpanded)
   }
 
   const getDifficultyColor = (difficulty: string) => {
@@ -36,65 +35,15 @@ export function ChallengeHistory({ challenges }: ChallengeHistoryProps) {
     }
   }
 
-  const getLanguageIcon = (language: string) => {
-    switch (language) {
-      case 'javascript': return '🟨'
-      case 'html': return '🟧'
-      case 'css': return '🟦'
-      default: return '📄'
-    }
-  }
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const getAccuracy = () => {
-    if (challenges.length === 0) return 0
-    const correct = challenges.filter(c => c.userAnswer === c.isCorrect).length
-    return Math.round((correct / challenges.length) * 100)
-  }
-
-  const getStats = () => {
-    const total = challenges.length
-    const correct = challenges.filter(c => c.userAnswer === c.isCorrect).length
-    const byDifficulty = {
-      easy: challenges.filter(c => c.difficulty === 'easy').length,
-      medium: challenges.filter(c => c.difficulty === 'medium').length,
-      hard: challenges.filter(c => c.difficulty === 'hard').length,
-    }
-    const byLanguage = {
-      javascript: challenges.filter(c => c.language === 'javascript').length,
-      html: challenges.filter(c => c.language === 'html').length,
-      css: challenges.filter(c => c.language === 'css').length,
-    }
-
-    return { total, correct, byDifficulty, byLanguage }
-  }
-
-  const stats = getStats()
-
   if (challenges.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Clock className="h-5 w-5" />
-            <span>Challenge History</span>
-          </CardTitle>
-          <CardDescription>Your completed challenges will appear here</CardDescription>
-        </CardHeader>
+      <Card className="text-center py-12">
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Code className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No challenges completed yet.</p>
-            <p className="text-sm">Generate your first challenge to get started!</p>
-          </div>
+          <History className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-xl font-semibold mb-2">No Challenges Yet</h3>
+          <p className="text-muted-foreground mb-4">
+            Complete some challenges to see your progress here!
+          </p>
         </CardContent>
       </Card>
     )
@@ -102,108 +51,122 @@ export function ChallengeHistory({ challenges }: ChallengeHistoryProps) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Progress</CardTitle>
-          <CardDescription>Overall statistics and performance</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Total Challenges</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{getAccuracy()}%</div>
-              <div className="text-sm text-muted-foreground">Accuracy</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.correct}</div>
-              <div className="text-sm text-muted-foreground">Correct</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{stats.total - stats.correct}</div>
-              <div className="text-sm text-muted-foreground">Incorrect</div>
-            </div>
-          </div>
-          
-          <Separator className="my-4" />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-medium mb-2">By Difficulty</h4>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="flex items-center space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span>Easy</span>
-                  </span>
-                  <span>{stats.byDifficulty.easy}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="flex items-center space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                    <span>Medium</span>
-                  </span>
-                  <span>{stats.byDifficulty.medium}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="flex items-center space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                    <span>Hard</span>
-                  </span>
-                  <span>{stats.byDifficulty.hard}</span>
-                </div>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Target className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Answered</p>
+                <p className="text-2xl font-bold">{answeredChallenges.length}</p>
               </div>
             </div>
-            <div>
-              <h4 className="font-medium mb-2">By Language</h4>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="flex items-center space-x-2">
-                    <span>🟨</span>
-                    <span>JavaScript</span>
-                  </span>
-                  <span>{stats.byLanguage.javascript}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="flex items-center space-x-2">
-                    <span>🟧</span>
-                    <span>HTML</span>
-                  </span>
-                  <span>{stats.byLanguage.html}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="flex items-center space-x-2">
-                    <span>🟦</span>
-                    <span>CSS</span>
-                  </span>
-                  <span>{stats.byLanguage.css}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Challenge List */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Accuracy</p>
+                <p className="text-2xl font-bold">{accuracy}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Correct</p>
+                <p className="text-2xl font-bold">{correctAnswers.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <XCircle className="h-5 w-5 text-red-500" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Incorrect</p>
+                <p className="text-2xl font-bold">{answeredChallenges.length - correctAnswers.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Breakdown by Difficulty and Language */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">By Difficulty</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {['easy', 'medium', 'hard'].map(difficulty => {
+              const count = challenges.filter(c => c.difficulty === difficulty).length
+              return (
+                <div key={difficulty} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${getDifficultyColor(difficulty)}`}></div>
+                    <span className="capitalize font-medium">{difficulty}</span>
+                  </div>
+                  <Badge variant="outline">{count}</Badge>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">By Language</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {['javascript', 'html', 'css'].map(language => {
+              const count = challenges.filter(c => c.language === language).length
+              return (
+                <div key={language} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span>{getLanguageIcon(language)}</span>
+                    <span className="capitalize font-medium">{language}</span>
+                  </div>
+                  <Badge variant="outline">{count}</Badge>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Challenge History List */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Clock className="h-5 w-5" />
+            <History className="h-5 w-5" />
             <span>Recent Challenges</span>
           </CardTitle>
-          <CardDescription>Your last {challenges.length} completed challenges</CardDescription>
+          <CardDescription>
+            Your challenge history with results and explanations
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[600px]">
+          <ScrollArea className="h-[600px] pr-4">
             <div className="space-y-4">
               {challenges.map((challenge, index) => {
-                const isExpanded = expandedChallenges.has(challenge.id)
+                const isCorrect = challenge.userAnswer === challenge.isCorrect
+                const hasAnswer = challenge.userAnswer !== undefined
+                
                 return (
-                  <div key={challenge.id} className="border rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-2">
+                  <div key={challenge.id} className="border rounded-lg p-4 space-y-3">
+                    {/* Challenge Header */}
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <Badge variant="outline" className="flex items-center space-x-1">
                           <span>{getLanguageIcon(challenge.language)}</span>
@@ -214,56 +177,68 @@ export function ChallengeHistory({ challenges }: ChallengeHistoryProps) {
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
-                        {challenge.userAnswer === challenge.isCorrect ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-600" />
+                        {hasAnswer && (
+                          <div className={`flex items-center space-x-1 ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                            {isCorrect ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <XCircle className="h-4 w-4" />
+                            )}
+                            <span className="text-sm font-medium">
+                              {isCorrect ? 'Correct' : 'Incorrect'}
+                            </span>
+                          </div>
                         )}
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(challenge.timestamp)}
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(challenge.timestamp).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </span>
                       </div>
                     </div>
-                    
-                    <p className="text-sm mb-2">{challenge.problem}</p>
-                    
-                    {/* Code Preview/Expand */}
-                    <div className="mb-2">
-                      {isExpanded ? (
-                        <CodeHighlighter code={challenge.code} language={challenge.language} />
-                      ) : (
-                        <div className="bg-muted p-2 rounded text-xs font-mono mb-2 overflow-x-auto">
-                          {challenge.code.length > 100 
-                            ? `${challenge.code.substring(0, 100)}...` 
-                            : challenge.code
-                          }
+
+                    {/* Problem Statement */}
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                      {challenge.problem}
+                    </p>
+
+                    {/* Code Preview */}
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded p-3 font-mono text-sm overflow-x-auto">
+                      <pre className="whitespace-pre-wrap">
+                        {challenge.code.length > 200 
+                          ? challenge.code.substring(0, 200) + '...'
+                          : challenge.code
+                        }
+                      </pre>
+                    </div>
+
+                    {/* Answer Details */}
+                    {hasAnswer && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>
+                            <strong>Your answer:</strong> {challenge.userAnswer ? 'Correct' : 'Incorrect'}
+                          </span>
+                          <span>
+                            <strong>Actual:</strong> {challenge.isCorrect ? 'Correct' : 'Incorrect'}
+                          </span>
                         </div>
-                      )}
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleExpanded(challenge.id)}
-                        className="text-xs h-6 px-2"
-                      >
-                        {isExpanded ? (
-                          <>
-                            <ChevronUp className="h-3 w-3 mr-1" />
-                            Collapse Code
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="h-3 w-3 mr-1" />
-                            Expand Code
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    
-                    <div className="text-xs text-muted-foreground">
-                      <strong>Your answer:</strong> {challenge.userAnswer ? 'Correct' : 'Incorrect'} | 
-                      <strong> Actual:</strong> {challenge.isCorrect ? 'Correct' : 'Incorrect'}
-                    </div>
+                        
+                        <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded text-sm">
+                          <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">
+                            {challenge.isCorrect ? '✅ Explanation:' : '❌ Why it\'s incorrect:'}
+                          </p>
+                          <p className="text-blue-700 dark:text-blue-300">
+                            {challenge.explanation}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {index < challenges.length - 1 && <Separator className="mt-4" />}
                   </div>
                 )
               })}

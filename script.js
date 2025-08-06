@@ -127,16 +127,6 @@ function loadSavedData() {
 
 // Setup event listeners
 function setupEventListeners() {
-    // API Key Modal
-    elements.apiKeyInput.addEventListener('input', validateApiKeyInput);
-    elements.apiKeyInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            saveApiKeyHandler();
-        }
-    });
-    elements.saveApiKey.addEventListener('click', saveApiKeyHandler);
-    elements.changeApiKey.addEventListener('click', showApiKeyModal);
-    
     // Theme toggle
     elements.themeToggle.addEventListener('click', toggleTheme);
     
@@ -157,95 +147,8 @@ function setupEventListeners() {
     elements.incorrectBtn.addEventListener('click', () => handleAnswer(false));
     
     // Preview expand
-    elements.expandPreview.addEventListener('click', togglePreviewExpand);
-}
-
-// API Key functions
-function showApiKeyModal() {
-    elements.apiKeyModal.classList.remove('hidden');
-    elements.apiKeyInput.value = '';
-    elements.apiKeyError.classList.add('hidden');
-    elements.saveApiKey.disabled = true;
-    elements.apiKeyInput.focus();
-}
-
-function hideApiKeyModal() {
-    elements.apiKeyModal.classList.add('hidden');
-}
-
-function validateApiKeyInput() {
-    const value = elements.apiKeyInput.value.trim();
-    elements.saveApiKey.disabled = !value || !value.startsWith('gsk_');
-    
-    if (value && !value.startsWith('gsk_')) {
-        showApiKeyError('Please enter a valid Groq API key (starts with gsk_)');
-    } else {
-        hideApiKeyError();
-    }
-}
-
-function showApiKeyError(message) {
-    elements.apiKeyError.querySelector('span').textContent = message;
-    elements.apiKeyError.classList.remove('hidden');
-}
-
-function hideApiKeyError() {
-    elements.apiKeyError.classList.add('hidden');
-}
-
-async function saveApiKeyHandler() {
-    const keyValue = elements.apiKeyInput.value.trim();
-    
-    if (!keyValue || !keyValue.startsWith('gsk_')) {
-        showApiKeyError('Please enter a valid Groq API key');
-        return;
-    }
-    
-    // Show loading state
-    elements.saveApiKey.innerHTML = '<div class="loading-spinner"></div> Validating...';
-    elements.saveApiKey.disabled = true;
-    
-    try {
-        // Test the API key
-        const isValid = await validateApiKey(keyValue);
-        
-        if (isValid) {
-            apiKey = keyValue;
-            localStorage.setItem('codeleap-api-key', keyValue);
-            hideApiKeyModal();
-            updateUI();
-        } else {
-            showApiKeyError('Invalid API key. Please check and try again.');
-        }
-    } catch (error) {
-        showApiKeyError('Failed to validate API key. Please check your connection and try again.');
-    } finally {
-        // Reset button
-        elements.saveApiKey.innerHTML = '<i data-lucide="key"></i> Save API Key';
-        elements.saveApiKey.disabled = false;
-        initializeLucideIcons();
-    }
-}
-
-async function validateApiKey(key) {
-    try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${key}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-                "messages": [{ "role": "user", "content": "Hello" }],
-                "max_tokens": 5
-            })
-        });
-        
-        return response.ok;
-    } catch (error) {
-        console.error('API key validation error:', error);
-        return false;
+    if (elements.expandPreview) {
+        elements.expandPreview.addEventListener('click', togglePreviewExpand);
     }
 }
 
@@ -300,7 +203,7 @@ function updateControlLabels() {
 // Challenge generation
 async function generateChallengeHandler() {
     if (!apiKey) {
-        showApiKeyModal();
+        console.error('No API key available');
         return;
     }
     
@@ -320,9 +223,26 @@ async function generateChallenge(difficulty, language) {
     showLoadingState();
     
     try {
-        const challenge = await callGroqAPI(difficulty, language);
+        const response = await fetch('/api/generate-challenge', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                difficulty: difficulty,
+                language: language,
+                apiKey: apiKey
+            })
+        });
+        
         const endTime = Date.now();
         const generationTime = endTime - startTime;
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const challenge = await response.json();
         
         // Handle different response types
         if (challenge.isRateLimit) {
@@ -345,18 +265,11 @@ async function generateChallenge(difficulty, language) {
         const generationTime = endTime - startTime;
         
         console.error('Challenge generation failed:', error);
+        showGenerationError(error.message || 'Generation failed', generationTime, false);
         
-        if (error.message === 'RATE_LIMIT_EXCEEDED') {
-            showRateLimitWarning(generationTime);
-            // Show fallback challenge
-            currentChallenge = getFallbackChallenge(language, difficulty);
-            displayChallenge(currentChallenge);
-        } else {
-            showGenerationError(error.message || 'AI generation failed', generationTime, false);
-            // Show fallback challenge
-            currentChallenge = getFallbackChallenge(language, difficulty);
-            displayChallenge(currentChallenge);
-        }
+        // Show dynamic fallback challenge
+        currentChallenge = getDynamicFallbackChallenge(language, difficulty);
+        displayChallenge(currentChallenge);
     } finally {
         isGenerating = false;
         hideLoadingState();
@@ -364,41 +277,10 @@ async function generateChallenge(difficulty, language) {
 }
 
 async function callGroqAPI(difficulty, language) {
-    // 70% chance of incorrect code for more challenge
-    const shouldBeCorrect = Math.random() > 0.7;
-    
-    const getRandomTopic = (lang, diff) => {
-        const topics = {
-            javascript: {
-                easy: ['variables', 'functions', 'arrays', 'objects', 'loops', 'conditionals', 'strings', 'numbers'],
-                medium: ['array methods', 'object destructuring', 'arrow functions', 'promises', 'async/await', 'classes', 'modules'],
-                hard: ['closures', 'prototypes', 'event loop', 'recursion', 'higher-order functions', 'generators', 'proxies']
-            },
-            html: {
-                easy: ['headings', 'paragraphs', 'links', 'images', 'lists', 'divs', 'spans', 'buttons'],
-                medium: ['forms', 'tables', 'semantic elements', 'attributes', 'input types', 'labels', 'fieldsets'],
-                hard: ['accessibility', 'meta tags', 'custom elements', 'data attributes', 'microdata', 'web components']
-            },
-            css: {
-                easy: ['colors', 'fonts', 'margins', 'padding', 'borders', 'backgrounds', 'text-align', 'display'],
-                medium: ['flexbox', 'grid', 'positioning', 'transforms', 'transitions', 'pseudo-classes', 'media queries'],
-                hard: ['animations', 'custom properties', 'calc()', 'clamp()', 'grid-areas', 'container queries', 'aspect-ratio']
-            }
-        };
-        
-        const topicList = topics[lang][diff];
-        return topicList[Math.floor(Math.random() * topicList.length)];
-    };
-    
-    const randomTopic = getRandomTopic(language, difficulty);
-    const randomScenario = Math.floor(Math.random() * 1000);
-    
-    const prompt = createPrompt(language, difficulty, shouldBeCorrect, randomTopic, randomScenario);
-    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
         controller.abort();
-    }, 25000);
+    }, 30000); // 30 second timeout
     
     try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -408,10 +290,20 @@ async function callGroqAPI(difficulty, language) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-                "messages": [{ "role": "user", "content": prompt }],
-                "temperature": 0.3,
-                "max_tokens": 1500
+                "model": "llama-3.1-8b-instant",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are an expert programming instructor who creates educational coding challenges. Always respond with valid JSON only."
+                    },
+                    {
+                        "role": "user",
+                        "content": createPrompt(language, difficulty)
+                    }
+                ],
+                "temperature": 0.7,
+                "max_tokens": 2000,
+                "top_p": 0.9
             }),
             signal: controller.signal
         });
@@ -436,11 +328,11 @@ async function callGroqAPI(difficulty, language) {
         }
         
         // Parse the JSON response
-        const challenge = parseAIResponse(content, language, difficulty, randomTopic);
+        const challenge = parseAIResponse(content, language, difficulty);
         
         return {
             ...challenge,
-            id: `ai-${language}-${difficulty}-${randomTopic}-${Date.now()}`,
+            id: `ai-${language}-${difficulty}-${Date.now()}`,
             language,
             difficulty,
             timestamp: Date.now()
@@ -452,151 +344,70 @@ async function callGroqAPI(difficulty, language) {
     }
 }
 
-function createPrompt(language, difficulty, isCorrect, topic, scenario) {
-    if (language === 'html') {
-        const htmlExample = isCorrect 
-            ? `<div class="container">\\n  <h1>Welcome to Our Site</h1>\\n  <p>This is a sample paragraph with some content.</p>\\n  <ul>\\n    <li>First item</li>\\n    <li>Second item</li>\\n  </ul>\\n</div>`
-            : `<div class="container">\\n  <h1>Welcome to Our Site</h2>\\n  <p>This is a sample paragraph with some content.</p>\\n  <ul>\\n    <li>First item</li>\\n    <li>Second item\\n  </ul>\\n</div>`;
-        
-        return `Create a unique ${difficulty} HTML challenge about ${topic}. Scenario #${scenario}.
+function createPrompt(language, difficulty) {
+    const topics = {
+        javascript: {
+            easy: ['variables and data types', 'basic functions', 'arrays', 'simple objects', 'for loops', 'if statements'],
+            medium: ['array methods', 'arrow functions', 'promises', 'destructuring', 'classes', 'async/await'],
+            hard: ['closures', 'prototypes', 'recursion', 'higher-order functions', 'generators', 'design patterns']
+        },
+        html: {
+            easy: ['headings and paragraphs', 'links', 'images', 'lists', 'basic elements'],
+            medium: ['forms', 'tables', 'semantic elements', 'input types', 'attributes'],
+            hard: ['accessibility', 'meta tags', 'custom elements', 'microdata', 'web components']
+        },
+        css: {
+            easy: ['colors and fonts', 'margins and padding', 'borders', 'basic selectors'],
+            medium: ['flexbox', 'grid', 'positioning', 'transitions', 'media queries'],
+            hard: ['animations', 'custom properties', 'advanced selectors', 'performance']
+        }
+    };
+    
+    const topicList = topics[language][difficulty];
+    const randomTopic = topicList[Math.floor(Math.random() * topicList.length)];
+    const shouldBeCorrect = Math.random() > 0.6;
+    const scenario = Math.floor(Math.random() * 10000);
+    
+    const complexityInstructions = {
+        easy: 'Keep it simple and beginner-friendly',
+        medium: 'Include intermediate concepts',
+        hard: 'Use advanced concepts and patterns'
+    };
+    
+    return `Create a unique ${difficulty} ${language} challenge about "${randomTopic}". Scenario #${scenario}.
 
-You must return ONLY a valid JSON object with this exact structure:
+${complexityInstructions[difficulty]}. Make it educational and realistic.
 
+Return ONLY a valid JSON object:
 {
-  "problem": "Is this HTML code correct?",
-  "code": "${htmlExample}",
-  "codeExplanation": "This HTML creates a container with heading, paragraph and list about ${topic}",
-  "isCorrect": ${isCorrect},
-  "explanation": "${isCorrect ? 'This HTML code is syntactically correct with proper nesting and closing tags.' : 'This HTML has an error - there is a mismatch between opening and closing tags.'}",
-  "additionalInfo": "HTML elements must have matching opening and closing tags for proper structure."
+  "problem": "Is this ${language} code correct?",
+  "code": "your_code_here",
+  "codeExplanation": "Brief explanation",
+  "isCorrect": ${shouldBeCorrect},
+  "explanation": "Detailed explanation",
+  "additionalInfo": "Learning tip"
 }
 
-CRITICAL RULES:
-1. Return ONLY the JSON object, no other text
-2. Use \\n for line breaks in the code field
-3. Use \\" to escape quotes inside strings
-4. Make the code about ${topic}
-5. ${isCorrect ? 'Ensure HTML is completely valid' : 'Include ONE subtle HTML error (wrong closing tag, missing closing tag, invalid nesting)'}
-6. Include proper indentation with 2 spaces per level
-7. Make the code substantial (5-10 lines minimum)
-
-The code should be complete and demonstrate ${topic} concepts.`;
-    } else if (language === 'css') {
-        const cssExample = isCorrect
-            ? `.container {\\n  background-color: #f0f0f0;\\n  padding: 20px;\\n  margin: 10px;\\n  border-radius: 5px;\\n}\\n\\n.title {\\n  color: #333;\\n  font-size: 24px;\\n}`
-            : `.container {\\n  background-color: #f0f0f0\\n  padding: 20px;\\n  margin: 10px;\\n  border-radius: 5px;\\n}\\n\\n.title {\\n  color: #333;\\n  font-size: 24px;\\n}`;
-        
-        return `Create a unique ${difficulty} CSS challenge about ${topic}. Scenario #${scenario}.
-
-You must return ONLY a valid JSON object with this exact structure:
-
-{
-  "problem": "Is this CSS code correct?",
-  "code": "${cssExample}",
-  "codeExplanation": "This CSS styles elements with ${topic} properties",
-  "isCorrect": ${isCorrect},
-  "explanation": "${isCorrect ? 'This CSS code is syntactically correct with proper semicolons and braces.' : 'This CSS has an error - missing semicolon after a property declaration.'}",
-  "additionalInfo": "CSS declarations must end with semicolons for proper syntax."
+Rules:
+- Use \\n for line breaks
+- Escape quotes with \\"
+- Focus on "${randomTopic}"
+- ${shouldBeCorrect ? 'Make code completely valid' : 'Include ONE realistic error'}
+- Use proper indentation
+- Make it practical and educational`;
 }
 
-CRITICAL RULES:
-1. Return ONLY the JSON object, no other text
-2. Use \\n for line breaks in the code field
-3. Use \\" to escape quotes inside strings
-4. Make the code about ${topic}
-5. ${isCorrect ? 'Ensure CSS is completely valid' : 'Include ONE subtle CSS error (missing semicolon, wrong property name, invalid value)'}
-6. Include proper indentation with 2 spaces per level
-7. Make the code substantial (multiple selectors/properties)
-
-The code should demonstrate ${topic} concepts clearly.`;
-    } else {
-        const jsExample = isCorrect
-            ? `function calculateSum(numbers) {\\n  let total = 0;\\n  for (let i = 0; i < numbers.length; i++) {\\n    total += numbers[i];\\n  }\\n  return total;\\n}\\n\\nconst result = calculateSum([1, 2, 3, 4, 5]);\\nconsole.log(result);`
-            : `function calculateSum(numbers) {\\n  let total = 0;\\n  for (let i = 0; i < numbers.length; i++) {\\n    total += numbers[i]\\n  }\\n  return total;\\n}\\n\\nconst result = calculateSum([1, 2, 3, 4, 5]);\\nconsole.log(result);`;
-        
-        return `Create a unique ${difficulty} JavaScript challenge about ${topic}. Scenario #${scenario}.
-
-You must return ONLY a valid JSON object with this exact structure:
-
-{
-  "problem": "Is this JavaScript code correct?",
-  "code": "${jsExample}",
-  "codeExplanation": "This JavaScript function demonstrates ${topic} concepts",
-  "isCorrect": ${isCorrect},
-  "explanation": "${isCorrect ? 'This JavaScript code is syntactically correct with proper semicolons and braces.' : 'This JavaScript has an error - missing semicolon after a statement.'}",
-  "additionalInfo": "JavaScript statements should end with semicolons for clarity and consistency."
-}
-
-CRITICAL RULES:
-1. Return ONLY the JSON object, no other text
-2. Use \\n for line breaks in the code field
-3. Use \\" to escape quotes inside strings
-4. Make the code about ${topic}
-5. ${isCorrect ? 'Ensure JavaScript is completely valid' : 'Include ONE subtle JavaScript error (missing semicolon, wrong operator, undefined variable)'}
-6. Include proper indentation with 2 spaces per level
-7. Make the code substantial (multiple lines/statements)
-
-The code should demonstrate ${topic} concepts clearly.`;
-    }
-}
-
-function parseAIResponse(content, language, difficulty, topic) {
+function parseAIResponse(content, language, difficulty) {
     try {
         let cleanContent = content.trim()
-            .replace(/```json\s*/gi, '')
-            .replace(/```\s*/g, '')
+            .replace(/\`\`\`json\s*/gi, '')
+            .replace(/\`\`\`\s*/g, '')
+            .replace(/^[^{]*/, '')
+            .replace(/[^}]*$/, '')
             .trim();
         
-        // Find JSON object boundaries
-        const firstBrace = cleanContent.indexOf('{');
-        if (firstBrace === -1) {
-            throw new Error('No JSON object found');
-        }
-        
-        let braceCount = 0;
-        let lastBrace = -1;
-        let inString = false;
-        let escapeNext = false;
-        
-        for (let i = firstBrace; i < cleanContent.length; i++) {
-            const char = cleanContent[i];
-            
-            if (escapeNext) {
-                escapeNext = false;
-                continue;
-            }
-            
-            if (char === '\\') {
-                escapeNext = true;
-                continue;
-            }
-            
-            if (char === '"' && !escapeNext) {
-                inString = !inString;
-                continue;
-            }
-            
-            if (!inString) {
-                if (char === '{') {
-                    braceCount++;
-                } else if (char === '}') {
-                    braceCount--;
-                    if (braceCount === 0) {
-                        lastBrace = i;
-                        break;
-                    }
-                }
-            }
-        }
-        
-        if (lastBrace === -1) {
-            throw new Error('Could not find matching closing brace');
-        }
-        
-        cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
         const challenge = JSON.parse(cleanContent);
         
-        // Validate required fields
         if (!challenge.problem || !challenge.code || typeof challenge.isCorrect !== 'boolean') {
             throw new Error('Missing required fields');
         }
@@ -612,190 +423,188 @@ function parseAIResponse(content, language, difficulty, topic) {
         return {
             problem: challenge.problem,
             code: cleanCode,
-            codeExplanation: challenge.codeExplanation || `This ${language} code demonstrates ${topic}.`,
+            codeExplanation: challenge.codeExplanation || `This ${language} code demonstrates key concepts.`,
             isCorrect: challenge.isCorrect,
             explanation: challenge.explanation || `This code is ${challenge.isCorrect ? 'correct' : 'incorrect'}.`,
-            additionalInfo: challenge.additionalInfo || `This is a ${difficulty} ${language} example about ${topic}.`
+            additionalInfo: challenge.additionalInfo || `This is a ${difficulty} ${language} example.`
         };
         
     } catch (parseError) {
         console.error('JSON parsing failed:', parseError);
-        
-        // Manual extraction fallback
-        const extractField = (fieldName, content) => {
-            const pattern = new RegExp(`"${fieldName}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`,'s');
-            const match = content.match(pattern);
-            if (match) {
-                return match[1]
-                    .replace(/\\n/g, '\n')
-                    .replace(/\\"/g, '"')
-                    .replace(/\\'/g, "'")
-                    .replace(/\\\\/g, '\\');
-            }
-            return null;
-        };
-        
-        const extractBoolean = (fieldName, content) => {
-            const regex = new RegExp(`"${fieldName}"\\s*:\\s*(true|false)`, 'i');
-            const match = content.match(regex);
-            return match ? match[1] === 'true' : null;
-        };
-        
-        const problem = extractField('problem', content);
-        const code = extractField('code', content);
-        const isCorrect = extractBoolean('isCorrect', content);
-        const explanation = extractField('explanation', content);
-        const codeExplanation = extractField('codeExplanation', content);
-        const additionalInfo = extractField('additionalInfo', content);
-        
-        if (problem && code && isCorrect !== null) {
-            return {
-                problem,
-                code,
-                codeExplanation: codeExplanation || `This ${language} code demonstrates ${topic}.`,
-                isCorrect,
-                explanation: explanation || `This code is ${isCorrect ? 'correct' : 'incorrect'}.`,
-                additionalInfo: additionalInfo || `This is a ${difficulty} ${language} example about ${topic}.`
-            };
-        }
-        
         throw new Error('Failed to parse AI response');
     }
 }
 
-function getFallbackChallenge(language, difficulty) {
-    const fallbacks = {
-        javascript: {
-            easy: [
-                {
-                    problem: "Does this variable assignment work?",
-                    code: "let age = 25;\nlet name = 'John';\nconsole.log('Hello ' + name + ', you are ' + age + ' years old.');",
-                    codeExplanation: "This code declares variables and creates a greeting message.",
-                    isCorrect: true,
-                    explanation: "This correctly declares variables and uses string concatenation.",
-                    additionalInfo: "Use 'let' for variables that can change their value."
-                },
-                {
-                    problem: "Will this function work correctly?",
-                    code: "function calculateArea(width, height) {\n  const area = width * height\n  return area;\n}\n\nconst result = calculateArea(5, 10);\nconsole.log('Area is: ' + result);",
-                    codeExplanation: "This function calculates the area of a rectangle.",
-                    isCorrect: false,
-                    explanation: "Missing semicolon after 'width * height'. Should be 'const area = width * height;'",
-                    additionalInfo: "JavaScript statements should end with semicolons for consistency."
-                }
-            ],
-            medium: [
-                {
-                    problem: "Does this array method work correctly?",
-                    code: "const numbers = [1, 2, 3, 4, 5];\nconst doubled = numbers.map(function(num) {\n  return num * 2;\n});\nconst sum = doubled.reduce((acc, curr) => acc + curr, 0);\nconsole.log('Sum of doubled numbers:', sum);",
-                    codeExplanation: "This code doubles array elements and calculates their sum.",
-                    isCorrect: true,
-                    explanation: "This correctly uses map() to transform elements and reduce() to sum them.",
-                    additionalInfo: "Array methods like map() and reduce() are powerful for data transformation."
-                }
-            ],
-            hard: [
-                {
-                    problem: "Does this closure implementation work?",
-                    code: "function createCounter(initialValue) {\n  let count = initialValue || 0;\n  \n  return {\n    increment: function() {\n      count++;\n      return count;\n    },\n    decrement: function() {\n      count--;\n      return count;\n    },\n    getValue: function() {\n      return count;\n    }\n  };\n}\n\nconst counter = createCounter(5);\nconsole.log(counter.increment());",
-                    codeExplanation: "This creates a counter object using closures to maintain private state.",
-                    isCorrect: true,
-                    explanation: "This correctly implements a closure pattern with private variables and public methods.",
-                    additionalInfo: "Closures allow functions to access variables from their outer scope even after the outer function returns."
-                }
-            ]
-        },
-        html: {
-            easy: [
-                {
-                    problem: "Is this HTML structure correct?",
-                    code: '<div class="welcome-section">\n  <h1>Welcome to Our Website</h1>\n  <p>This is a sample paragraph with some <strong>bold text</strong> and a <a href="#about">link</a>.</p>\n  <img src="welcome.jpg" alt="Welcome image">\n</div>',
-                    codeExplanation: "This creates a welcome section with heading, paragraph, and image.",
-                    isCorrect: true,
-                    explanation: "This HTML is properly structured with correct nesting and attributes.",
-                    additionalInfo: "Always include alt attributes for images for accessibility."
-                },
-                {
-                    problem: "Is this list structure correct?",
-                    code: '<div class="navigation">\n  <h2>Menu</h2>\n  <ul>\n    <li><a href="#home">Home</a></li>\n    <li><a href="#about">About</a>\n    <li><a href="#contact">Contact</a></li>\n  </ul>\n</div>',
-                    codeExplanation: "This creates a navigation menu with a list of links.",
-                    isCorrect: false,
-                    explanation: "Missing closing tag </li> for the 'About' list item. Each <li> must have a corresponding </li>.",
-                    additionalInfo: "All HTML elements must be properly closed to maintain valid document structure."
-                }
-            ],
-            medium: [
-                {
-                    problem: "Is this form structure correct?",
-                    code: '<form action="/submit" method="post" class="contact-form">\n  <fieldset>\n    <legend>Contact Information</legend>\n    \n    <label for="fullname">Full Name:</label>\n    <input type="text" id="fullname" name="fullname" required>\n    \n    <label for="email">Email Address:</label>\n    <input type="email" id="email" name="email" required>\n    \n    <label for="message">Message:</label>\n    <textarea id="message" name="message" rows="4" cols="50" required></textarea>\n    \n    <button type="submit">Send Message</button>\n  </fieldset>\n</form>',
-                    codeExplanation: "This creates a contact form with fieldset, labels, and various input types.",
-                    isCorrect: true,
-                    explanation: "This form is properly structured with semantic elements, proper labeling, and accessibility features.",
-                    additionalInfo: "Using fieldset and legend elements helps group related form controls and improves accessibility."
-                }
-            ],
-            hard: [
-                {
-                    problem: "Is this semantic HTML structure correct?",
-                    code: '<article class="blog-post">\n  <header>\n    <h1>Understanding Web Accessibility</h1>\n    <p class="meta">\n      <time datetime="2024-01-15">January 15, 2024</time>\n      by <span class="author">Jane Smith</span>\n    </p>\n  </header>\n  \n  <section class="content">\n    <h2>Introduction</h2>\n    <p>Web accessibility ensures that websites are usable by people with disabilities.</p>\n    \n    <h2>Key Principles</h2>\n    <ul>\n      <li>Perceivable - Information must be presentable in ways users can perceive</li>\n      <li>Operable - Interface components must be operable</li>\n      <li>Understandable - Information and UI operation must be understandable</li>\n      <li>Robust - Content must be robust enough for various assistive technologies</li>\n    </ul>\n  </section>\n  \n  <footer>\n    <p>Tags: <span class="tag">accessibility</span>, <span class="tag">web development</span></p>\n  </footer>\n</article>',
-                    codeExplanation: "This uses semantic HTML5 elements to structure a blog post with proper hierarchy.",
-                    isCorrect: true,
-                    explanation: "This correctly uses semantic elements like article, header, section, and footer with proper heading hierarchy.",
-                    additionalInfo: "Semantic HTML improves accessibility, SEO, and code maintainability by providing meaningful structure."
-                }
-            ]
-        },
-        css: {
-            easy: [
-                {
-                    problem: "Is this CSS styling correct?",
-                    code: ".header {\n  background-color: #2c3e50;\n  color: white;\n  padding: 20px;\n  text-align: center;\n}\n\n.header h1 {\n  margin: 0;\n  font-size: 2.5em;\n  font-weight: bold;\n}",
-                    codeExplanation: "This styles a header section with background, text color, and typography.",
-                    isCorrect: true,
-                    explanation: "This CSS is properly formatted with correct syntax and semicolons.",
-                    additionalInfo: "Using specific selectors like '.header h1' helps target elements precisely."
-                },
-                {
-                    problem: "Will this button styling work?",
-                    code: ".button {\n  background-color: #3498db\n  color: white;\n  padding: 12px 24px;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\n.button:hover {\n  background-color: #2980b9;\n}",
-                    codeExplanation: "This styles a button with colors, padding, and hover effects.",
-                    isCorrect: false,
-                    explanation: "Missing semicolon after 'background-color: #3498db'. Should be '#3498db;'",
-                    additionalInfo: "Every CSS property declaration must end with a semicolon."
-                }
-            ],
-            medium: [
-                {
-                    problem: "Does this flexbox layout work?",
-                    code: ".container {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 20px;\n  max-width: 1200px;\n  margin: 0 auto;\n}\n\n.item {\n  flex: 1;\n  margin: 0 10px;\n  padding: 15px;\n  background-color: #f8f9fa;\n  border-radius: 8px;\n}",
-                    codeExplanation: "This creates a flexible layout container with evenly distributed items.",
-                    isCorrect: true,
-                    explanation: "This correctly uses flexbox properties to create a responsive layout with proper spacing.",
-                    additionalInfo: "Flexbox is excellent for creating flexible, responsive layouts with minimal code."
-                }
-            ],
-            hard: [
-                {
-                    problem: "Will this CSS Grid and animation work?",
-                    code: ".grid-container {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));\n  gap: 20px;\n  padding: 20px;\n}\n\n.grid-item {\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  padding: 30px;\n  border-radius: 12px;\n  color: white;\n  transition: transform 0.3s ease, box-shadow 0.3s ease;\n}\n\n.grid-item:hover {\n  transform: translateY(-5px);\n  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);\n}\n\n@keyframes fadeInUp {\n  from {\n    opacity: 0;\n    transform: translateY(30px);\n  }\n  to {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n.grid-item {\n  animation: fadeInUp 0.6s ease-out;\n}",
-                    codeExplanation: "This creates a responsive grid layout with gradient backgrounds, hover effects, and animations.",
-                    isCorrect: true,
-                    explanation: "This correctly combines CSS Grid, gradients, transitions, and keyframe animations for a modern layout.",
-                    additionalInfo: "CSS Grid with auto-fit and minmax creates truly responsive layouts that adapt to any screen size."
-                }
-            ]
-        }
-    };
+// Dynamic fallback challenge generation
+function getDynamicFallbackChallenge(language, difficulty) {
+    const timestamp = Date.now();
+    const randomSeed = Math.floor(Math.random() * 1000);
     
-    const examples = fallbacks[language][difficulty];
-    const randomExample = examples[Math.floor(Math.random() * examples.length)];
+    if (language === 'javascript') {
+        return generateJavaScriptChallenge(difficulty, randomSeed, timestamp);
+    } else if (language === 'html') {
+        return generateHTMLChallenge(difficulty, randomSeed, timestamp);
+    } else if (language === 'css') {
+        return generateCSSChallenge(difficulty, randomSeed, timestamp);
+    }
     
     return {
-        ...randomExample,
-        id: `fallback-${language}-${difficulty}-${Date.now()}`,
+        problem: `Is this ${language} code correct?`,
+        code: `// ${language} example\nconsole.log("Hello World");`,
+        codeExplanation: `Basic ${language} example.`,
+        isCorrect: true,
+        explanation: `This code is syntactically correct.`,
+        additionalInfo: `This demonstrates basic ${language} syntax.`,
+        id: `fallback-${language}-${difficulty}-${timestamp}`,
         language,
         difficulty,
-        timestamp: Date.now()
+        timestamp
+    };
+}
+
+function generateJavaScriptChallenge(difficulty, seed, timestamp) {
+    const challenges = {
+        easy: [
+            {
+                code: `let count = 0;\nfor (let i = 1; i <= 5; i++) {\n  count += i;\n}\nconsole.log(count);`,
+                correct: true,
+                explanation: 'This correctly calculates the sum of numbers 1 through 5 using a for loop.'
+            },
+            {
+                code: `function multiply(a, b) {\n  return a * b\n}\n\nconst result = multiply(4, 5);\nconsole.log(result);`,
+                correct: false,
+                explanation: 'Missing semicolon after the return statement. Should be: return a * b;'
+            }
+        ],
+        medium: [
+            {
+                code: `const users = [{name: "Alice", age: 25}, {name: "Bob", age: 30}];\nconst names = users.map(user => user.name);\nconsole.log(names);`,
+                correct: true,
+                explanation: 'This correctly uses the map method to extract names from an array of objects.'
+            },
+            {
+                code: `async function getData() {\n  const response = await fetch("/api/data");\n  const data = response.json();\n  return data;\n}`,
+                correct: false,
+                explanation: 'Missing await before response.json(). Should be: const data = await response.json();'
+            }
+        ],
+        hard: [
+            {
+                code: `function memoize(fn) {\n  const cache = new Map();\n  return function(...args) {\n    const key = JSON.stringify(args);\n    if (cache.has(key)) {\n      return cache.get(key);\n    }\n    const result = fn.apply(this, args);\n    cache.set(key, result);\n    return result;\n  };\n}`,
+                correct: true,
+                explanation: 'This correctly implements a memoization function using closures and a Map for caching.'
+            }
+        ]
+    };
+    
+    const diffChallenges = challenges[difficulty] || challenges.easy;
+    const selected = diffChallenges[seed % diffChallenges.length];
+    
+    return {
+        problem: 'Is this JavaScript code correct?',
+        code: selected.code,
+        codeExplanation: `This JavaScript demonstrates ${difficulty}-level programming concepts.`,
+        isCorrect: selected.correct,
+        explanation: selected.explanation,
+        additionalInfo: `Understanding these ${difficulty} JavaScript concepts is important for development.`,
+        id: `fallback-javascript-${difficulty}-${timestamp}`,
+        language: 'javascript',
+        difficulty,
+        timestamp
+    };
+}
+
+function generateHTMLChallenge(difficulty, seed, timestamp) {
+    const challenges = {
+        easy: [
+            {
+                code: `<div class="card">\n  <h2>Welcome</h2>\n  <p>This is a simple card component.</p>\n  <button>Click me</button>\n</div>`,
+                correct: true,
+                explanation: 'This HTML is properly structured with correct nesting and semantic elements.'
+            },
+            {
+                code: `<ul>\n  <li>Item 1</li>\n  <li>Item 2\n  <li>Item 3</li>\n</ul>`,
+                correct: false,
+                explanation: 'Missing closing </li> tag for "Item 2". Each list item must be properly closed.'
+            }
+        ],
+        medium: [
+            {
+                code: `<form>\n  <label for="username">Username:</label>\n  <input type="text" id="username" name="username" required>\n  <label for="password">Password:</label>\n  <input type="password" id="password" name="password" required>\n  <button type="submit">Login</button>\n</form>`,
+                correct: true,
+                explanation: 'This form is properly structured with labels correctly associated with inputs for accessibility.'
+            }
+        ],
+        hard: [
+            {
+                code: `<article>\n  <header>\n    <h1>Article Title</h1>\n    <time datetime="2024-01-15">January 15, 2024</time>\n  </header>\n  <section>\n    <p>Article content goes here.</p>\n  </section>\n</article>`,
+                correct: true,
+                explanation: 'This uses semantic HTML5 elements correctly to structure an article with proper hierarchy.'
+            }
+        ]
+    };
+    
+    const diffChallenges = challenges[difficulty] || challenges.easy;
+    const selected = diffChallenges[seed % diffChallenges.length];
+    
+    return {
+        problem: 'Is this HTML code correct?',
+        code: selected.code,
+        codeExplanation: `This HTML demonstrates ${difficulty}-level markup concepts.`,
+        isCorrect: selected.correct,
+        explanation: selected.explanation,
+        additionalInfo: `Proper HTML structure is essential for ${difficulty} web development.`,
+        id: `fallback-html-${difficulty}-${timestamp}`,
+        language: 'html',
+        difficulty,
+        timestamp
+    };
+}
+
+function generateCSSChallenge(difficulty, seed, timestamp) {
+    const challenges = {
+        easy: [
+            {
+                code: `.button {\n  background-color: #007bff;\n  color: white;\n  padding: 10px 20px;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}`,
+                correct: true,
+                explanation: 'This CSS correctly styles a button with proper syntax and semicolons.'
+            },
+            {
+                code: `.card {\n  background-color: #f8f9fa\n  padding: 20px;\n  border-radius: 8px;\n  box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n}`,
+                correct: false,
+                explanation: 'Missing semicolon after background-color property. Should be: background-color: #f8f9fa;'
+            }
+        ],
+        medium: [
+            {
+                code: `.container {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  min-height: 100vh;\n  gap: 20px;\n}`,
+                correct: true,
+                explanation: 'This correctly uses flexbox to center content both horizontally and vertically.'
+            }
+        ],
+        hard: [
+            {
+                code: `@keyframes fadeIn {\n  from { opacity: 0; transform: translateY(20px); }\n  to { opacity: 1; transform: translateY(0); }\n}\n\n.animate {\n  animation: fadeIn 0.3s ease-out;\n}`,
+                correct: true,
+                explanation: 'This correctly defines a CSS animation with keyframes for a fade-in effect.'
+            }
+        ]
+    };
+    
+    const diffChallenges = challenges[difficulty] || challenges.easy;
+    const selected = diffChallenges[seed % diffChallenges.length];
+    
+    return {
+        problem: 'Is this CSS code correct?',
+        code: selected.code,
+        codeExplanation: `This CSS demonstrates ${difficulty}-level styling concepts.`,
+        isCorrect: selected.correct,
+        explanation: selected.explanation,
+        additionalInfo: `Mastering ${difficulty} CSS concepts is important for modern web design.`,
+        id: `fallback-css-${difficulty}-${timestamp}`,
+        language: 'css',
+        difficulty,
+        timestamp
     };
 }
 
@@ -823,7 +632,7 @@ function showRateLimitWarning(generationTime) {
     elements.rateLimitWarning.classList.remove('hidden');
     elements.generationError.classList.add('hidden');
     
-    if (generationTime) {
+    if (generationTime && elements.generationTime) {
         elements.generationTime.classList.remove('hidden');
         elements.generationTime.querySelector('span').textContent = `${(generationTime / 1000).toFixed(1)}s`;
     }
@@ -843,7 +652,7 @@ function showGenerationError(message, generationTime, isFallback) {
         errorCard.className = 'card error-card';
     }
     
-    if (generationTime) {
+    if (generationTime && elements.errorTime) {
         elements.errorTime.classList.remove('hidden');
         elements.errorTime.querySelector('span').textContent = `${(generationTime / 1000).toFixed(1)}s`;
     }
@@ -1016,12 +825,14 @@ function formatJavaScript(js) {
             continue;
         }
         
+        // Decrease indent for closing braces
         if (trimmed.startsWith('}')) {
             indent = Math.max(0, indent - indentSize);
         }
         
         formatted += ' '.repeat(indent) + trimmed + '\n';
         
+        // Increase indent after opening braces
         if (trimmed.endsWith('{')) {
             indent += indentSize;
         }
@@ -1188,12 +999,12 @@ function handleAnswer(userAnswer) {
     
     if (isCorrect) {
         resultBox.className = 'result-box correct';
-        resultHeader.className = 'result-header correct';
+        if (resultHeader) resultHeader.className = 'result-header correct';
         elements.resultIcon.setAttribute('data-lucide', 'check-circle');
         elements.resultText.textContent = '🎉 Correct!';
     } else {
         resultBox.className = 'result-box incorrect';
-        resultHeader.className = 'result-header incorrect';
+        if (resultHeader) resultHeader.className = 'result-header incorrect';
         elements.resultIcon.setAttribute('data-lucide', 'x-circle');
         elements.resultText.textContent = '❌ Incorrect!';
     }
@@ -1238,13 +1049,14 @@ function updateHistoryDisplay() {
 
 function updateStats() {
     const total = challengeHistory.length;
-    const correct = challengeHistory.filter(c => c.userAnswer === c.isCorrect).length;
-    const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+    const answeredChallenges = challengeHistory.filter(c => c.userAnswer !== undefined);
+    const correct = answeredChallenges.filter(c => c.userAnswer === c.isCorrect).length;
+    const accuracy = answeredChallenges.length > 0 ? Math.round((correct / answeredChallenges.length) * 100) : 0;
     
-    elements.totalChallenges.textContent = total;
+    elements.totalChallenges.textContent = answeredChallenges.length;
     elements.accuracyPercent.textContent = `${accuracy}%`;
     elements.correctAnswers.textContent = correct;
-    elements.incorrectAnswers.textContent = total - correct;
+    elements.incorrectAnswers.textContent = answeredChallenges.length - correct;
     
     // By difficulty
     elements.easyCount.textContent = challengeHistory.filter(c => c.difficulty === 'easy').length;
@@ -1322,12 +1134,8 @@ function updateHistoryList() {
 function updateUI() {
     // Show/hide API key button
     if (apiKey) {
-        elements.changeApiKey.classList.remove('hidden');
-        elements.apiKeyRequired.classList.add('hidden');
         elements.generateChallenge.disabled = false;
     } else {
-        elements.changeApiKey.classList.add('hidden');
-        elements.apiKeyRequired.classList.remove('hidden');
         elements.generateChallenge.disabled = true;
     }
     
@@ -1335,7 +1143,7 @@ function updateUI() {
     updateControlLabels();
     
     // Update history if on history tab
-    if (elements.historyTab.classList.contains('active')) {
+    if (elements.historyTab && elements.historyTab.classList.contains('active')) {
         updateHistoryDisplay();
     }
 }

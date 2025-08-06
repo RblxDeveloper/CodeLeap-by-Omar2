@@ -1,31 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertTriangle, Eye, ExternalLink } from 'lucide-react'
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ExternalLink, Eye } from 'lucide-react'
 
 interface HtmlPreviewProps {
   code: string
 }
 
 export function HtmlPreview({ code }: HtmlPreviewProps) {
-  const [hasError, setHasError] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
 
-  useEffect(() => {
-    setHasError(false)
-  }, [code])
-
-  const handleError = () => {
-    setHasError(true)
-  }
-
-  // Clean the HTML code for preview (remove dangerous scripts but keep the structure)
-  const cleanCode = code.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-
-  // Create a complete HTML document for better rendering
   const createPreviewDocument = (htmlCode: string) => {
+    // Remove any script tags for security
+    const cleanCode = htmlCode.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -118,70 +108,44 @@ export function HtmlPreview({ code }: HtmlPreviewProps) {
   </style>
 </head>
 <body>
-  ${htmlCode}
+  ${cleanCode}
 </body>
 </html>`
   }
 
-  if (hasError) {
-    return (
-      <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800">
-        <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-        <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-          Unable to render HTML preview. The code may contain syntax errors or unsupported elements.
-        </AlertDescription>
-      </Alert>
-    )
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded)
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Live Preview</span>
+    <Card className="border border-gray-200 dark:border-gray-700">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center space-x-2 text-base">
+            <Eye className="h-4 w-4 text-purple-600" />
+            <span>HTML Preview</span>
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleExpanded}
+            className="flex items-center space-x-1"
+          >
+            <ExternalLink className="h-3 w-3" />
+            <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-xs cursor-pointer"
-        >
-          <ExternalLink className="h-3 w-3 mr-1" />
-          {isExpanded ? 'Collapse' : 'Expand'}
-        </Button>
-      </div>
-      
-      <div className={`border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-inner transition-all duration-300 ${
-        isExpanded ? 'h-96' : 'h-64'
-      }`}>
-        <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-2">
-            <div className="flex space-x-1">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">preview.html</span>
-          </div>
-        </div>
-        
-        <div className="h-full overflow-auto">
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className={`preview-container ${isExpanded ? 'expanded' : ''} border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-white`}>
           <iframe
-            srcDoc={createPreviewDocument(cleanCode)}
-            className="w-full h-full border-0"
-            sandbox="allow-same-origin allow-forms"
-            onError={handleError}
+            srcDoc={createPreviewDocument(code)}
+            className={`w-full border-0 ${isExpanded ? 'h-96' : 'h-48'}`}
             title="HTML Preview"
-            style={{ minHeight: isExpanded ? '350px' : '220px' }}
+            sandbox="allow-same-origin"
           />
         </div>
-      </div>
-      
-      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
-        <AlertTriangle className="h-3 w-3" />
-        <span>Preview runs in a sandboxed environment for security</span>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

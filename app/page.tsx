@@ -58,6 +58,12 @@ export default function CodeLeapApp() {
     }
   }, [])
 
+  const saveToHistory = (challenge: Challenge) => {
+    const updatedHistory = [challenge, ...challengeHistory].slice(0, 50)
+    setChallengeHistory(updatedHistory)
+    localStorage.setItem('codeleap-history', JSON.stringify(updatedHistory))
+  }
+
   const generateChallenge = async () => {
     if (!apiKey) {
       return
@@ -191,7 +197,8 @@ export default function CodeLeapApp() {
                   </CardTitle>
                   <CardDescription className="max-w-2xl mx-auto">
                     Test your coding skills with AI-generated challenges. Each challenge is unique and 
-                    designed to help you learn and improve your programming knowledge.
+                    designed to help you learn and improve your programming knowledge. Most challenges 
+                    contain subtle errors - can you spot them?
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -203,8 +210,8 @@ export default function CodeLeapApp() {
                     </Card>
                     <Card className="p-4">
                       <Sparkles className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                      <h3 className="font-semibold">Always Different</h3>
-                      <p className="text-sm text-muted-foreground">Never see the same challenge twice</p>
+                      <h3 className="font-semibold">Mix of Correct & Incorrect</h3>
+                      <p className="text-sm text-muted-foreground">Test your debugging skills</p>
                     </Card>
                     <Card className="p-4">
                       <Target className="h-8 w-8 text-blue-500 mx-auto mb-2" />
@@ -294,7 +301,8 @@ export default function CodeLeapApp() {
                     <span>Generate {selectedLanguage.toUpperCase()} Challenge</span>
                   </CardTitle>
                   <CardDescription>
-                    Create a unique {selectedLanguage} challenge at {selectedDifficulty} difficulty
+                    Create a unique {selectedLanguage} challenge at {selectedDifficulty} difficulty. 
+                    Most challenges will contain subtle errors to test your debugging skills!
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
